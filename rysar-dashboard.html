@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RYSAR — Creator Operating System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400&display=swap');
+
+  :root {
+    --bg: #080b0f;
+    --bg2: #0d1117;
+    --bg3: #131920;
+    --surface: #161d27;
+    --surface2: #1c2535;
+    --border: #1e2d3d;
+    --border2: #243344;
+    --accent: #e8390e;
+    --accent2: #ff5c2e;
+    --gold: #f0a500;
+    --cyan: #00d4ff;
+    --green: #00e676;
+    --text: #e8edf2;
+    --text2: #8fa3b1;
+    --text3: #4a6070;
+    --glow: 0 0 30px rgba(232,57,14,0.15);
+    --glow2: 0 0 60px rgba(232,57,14,0.08);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  html, body {
+    height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    overflow: hidden;
+  }
+
+  /* LAYOUT */
+  .app {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 56px 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    grid-column: 1 / -1;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: relative;
+  }
+  .topbar::after {
+    content:'';
+    position:absolute;
+    bottom:0; left:0; right:0;
+    height:1px;
+    background: linear-gradient(90deg, var(--accent) 0%, transparent 60%);
+    opacity:0.4;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--text);
+    text-shadow: 0 0 20px rgba(232,57,14,0.5);
+  }
+  .logo span { color: var(--accent); }
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .status-pill {
+    background: rgba(0,230,118,0.1);
+    border: 1px solid rgba(0,230,118,0.3);
+    color: var(--green);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+  }
+  .trip-counter {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .trip-counter span { color: var(--gold); font-weight:500; }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .sidebar::-webkit-scrollbar { width:4px; }
+  .sidebar::-webkit-scrollbar-track { background:transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius:2px; }
+
+  .nav-section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    padding: 12px 20px 6px;
+    text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    position: relative;
+  }
+  .nav-item:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+  .nav-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: rgba(232,57,14,0.06);
+  }
+  .nav-item .nav-icon {
+    font-size: 14px;
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+
+  /* MAIN */
+  .main {
+    overflow-y: auto;
+    background: var(--bg);
+    position: relative;
+  }
+  .main::-webkit-scrollbar { width: 6px; }
+  .main::-webkit-scrollbar-track { background: transparent; }
+  .main::-webkit-scrollbar-thumb { background: var(--border2); border-radius:3px; }
+
+  .tab-content { display: none; padding: 32px; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform:none; } }
+
+  /* SHARED COMPONENTS */
+  .page-header {
+    margin-bottom: 32px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    letter-spacing: 3px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .page-title span { color: var(--accent); }
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--text3);
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { border-color: var(--border2); box-shadow: var(--glow); }
+  .card.accent-card {
+    border-color: rgba(232,57,14,0.3);
+    background: linear-gradient(135deg, rgba(232,57,14,0.06) 0%, var(--surface) 60%);
+  }
+  .card.gold-card {
+    border-color: rgba(240,165,0,0.3);
+    background: linear-gradient(135deg, rgba(240,165,0,0.05) 0%, var(--surface) 60%);
+  }
+  .card.cyan-card {
+    border-color: rgba(0,212,255,0.3);
+    background: linear-gradient(135deg, rgba(0,212,255,0.05) 0%, var(--surface) 60%);
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title.gold { color: var(--gold); }
+  .card-title.cyan { color: var(--cyan); }
+  .card-title.green { color: var(--green); }
+
+  .stat-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(232,57,14,0.12);
+    border: 1px solid rgba(232,57,14,0.25);
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    margin: 2px;
+  }
+  .tag.gold { background: rgba(240,165,0,0.1); border-color: rgba(240,165,0,0.25); color: var(--gold); }
+  .tag.cyan { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.25); color: var(--cyan); }
+  .tag.green { background: rgba(0,230,118,0.1); border-color: rgba(0,230,118,0.25); color: var(--green); }
+
+  .hook-box {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 8px 0;
+    font-size: 13px;
+    line-height: 1.6;
+    font-style: italic;
+    color: var(--text);
+  }
+  .hook-box .hook-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    font-style: normal;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .template-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--text2);
+    white-space: pre-wrap;
+  }
+
+  .expandable { cursor: pointer; user-select: none; }
+  .expandable-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .expandable-header:hover { border-color: var(--border2); background: var(--surface2); }
+  .expandable-header .arrow {
+    margin-left: auto;
+    transition: transform 0.25s;
+    color: var(--text3);
+    font-size: 12px;
+  }
+  .expandable.open .arrow { transform: rotate(90deg); }
+  .expandable-body {
+    display: none;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    background: rgba(0,0,0,0.2);
+  }
+  .expandable.open .expandable-body { display: block; animation: fadeIn 0.2s; }
+
+  /* PROGRESS */
+  .progress-bar-outer {
+    background: var(--border);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+
+  /* CHECKLIST */
+  .checklist-group { margin-bottom: 28px; }
+  .checklist-group-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .group-progress {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+  }
+  .checklist-item:hover { background: rgba(255,255,255,0.03); border-color: var(--border); }
+  .checklist-item.checked { opacity: 0.55; }
+  .checklist-item.checked .item-text { text-decoration: line-through; color: var(--text3); }
+
+  .check-box {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border2);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-top: 1px;
+  }
+  .checklist-item.checked .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .check-box::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: 2px solid white;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+    display: none;
+  }
+  .checklist-item.checked .check-box::after { display: block; }
+
+  .item-text { font-size: 13px; line-height: 1.4; }
+  .item-sub { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* MASTER PROGRESS */
+  .master-progress {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .master-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .master-info { flex: 1; }
+  .master-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* DAY CARDS */
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .day-header:hover { background: rgba(255,255,255,0.02); }
+  .day-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    color: var(--accent);
+    line-height: 1;
+    width: 40px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .day-info { flex: 1; }
+  .day-title { font-weight: 600; font-size: 14px; }
+  .day-meta { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .day-badge {
+    background: rgba(232,57,14,0.15);
+    border: 1px solid rgba(232,57,14,0.25);
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 12px;
+  }
+  .day-arrow { color: var(--text3); transition: transform 0.25s; font-size: 12px; }
+  .day-card.open .day-arrow { transform: rotate(90deg); }
+  .day-body { display: none; padding: 0 18px 18px; }
+  .day-card.open .day-body { display: block; animation: fadeIn 0.2s; }
+
+  .shot-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .shot-item {
+    background: var(--bg3);
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    display: flex;
+    gap: 10px;
+  }
+  .shot-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    min-width: 22px;
+  }
+
+  /* SPONSOR TABLE */
+  .sponsor-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .sponsor-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+  .sponsor-table td {
+    padding: 11px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+  }
+  .sponsor-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .fit-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .fit-high { background: var(--green); }
+  .fit-med { background: var(--gold); }
+
+  /* SCROLLABLE SECTIONS */
+  .scroll-area {
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+  .scroll-area::-webkit-scrollbar { width: 4px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  p { color: var(--text2); font-size: 13.5px; line-height: 1.7; margin: 8px 0; }
+  h3 { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--text); margin: 16px 0 8px; }
+  ul.styled { list-style: none; display: grid; gap: 6px; }
+  ul.styled li { font-size: 13px; color: var(--text2); padding-left: 16px; position: relative; }
+  ul.styled li::before { content:'—'; position:absolute; left:0; color: var(--accent); }
+
+  .mb8 { margin-bottom: 8px; }
+  .mb16 { margin-bottom: 16px; }
+  .mb24 { margin-bottom: 24px; }
+  .mt16 { margin-top: 16px; }
+  .mt24 { margin-top: 24px; }
+
+  @media (max-width: 900px) {
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">RY<span>S</span>AR</div>
+    <div class="tagline">// Creator Operating System v1.0</div>
+    <div class="topbar-right">
+      <div class="status-pill">● ACTIVE TRIP</div>
+      <div class="trip-counter">SWEDEN TRIP — <span>11 DAYS</span></div>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section-label">Foundation</div>
+    <div class="nav-item active" data-tab="brand" onclick="switchTab('brand', this)">
+      <span class="nav-icon">◈</span> Brand Identity
+    </div>
+    <div class="nav-item" data-tab="tiktok" onclick="switchTab('tiktok', this)">
+      <span class="nav-icon">▲</span> TikTok Strategy
+    </div>
+
+    <div class="nav-section-label">Execution</div>
+    <div class="nav-item" data-tab="filmplan" onclick="switchTab('filmplan', this)">
+      <span class="nav-icon">◉</span> 11-Day Film Plan
+    </div>
+    <div class="nav-item" data-tab="scripts" onclick="switchTab('scripts', this)">
+      <span class="nav-icon">≡</span> Scripts & Ideas
+    </div>
+
+    <div class="nav-section-label">Growth</div>
+    <div class="nav-item" data-tab="sponsors" onclick="switchTab('sponsors', this)">
+      <span class="nav-icon">◇</span> Sponsorship
+    </div>
+    <div class="nav-item" data-tab="emotional" onclick="switchTab('emotional', this)">
+      <span class="nav-icon">♡</span> Emotional Story
+    </div>
+
+    <div class="nav-section-label">Operations</div>
+    <div class="nav-item" data-tab="workflow" onclick="switchTab('workflow', this)">
+      <span class="nav-icon">⚙</span> Workflow
+    </div>
+    <div class="nav-item" data-tab="checklist" onclick="switchTab('checklist', this)">
+      <span class="nav-icon">✓</span> Master Checklist
+      <span class="nav-badge" id="checklist-badge">0%</span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ============================================================ TAB: BRAND -->
+    <div class="tab-content active" id="tab-brand">
+      <div class="page-header">
+        <div class="page-title">BRAND <span>IDENTITY</span></div>
+        <div class="page-subtitle">// WHO RYSAR IS — AND WHAT IT STANDS FOR</div>
+      </div>
+
+      <div class="grid-4 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">RAW</div><div class="stat-label">Authenticity</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">SE</div><div class="stat-label">Origin: Sweden</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">2</div><div class="stat-label">Creators</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--green)">∞</div><div class="stat-label">Content Potential</div></div>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card accent-card">
+          <div class="card-title">◈ BRAND CONCEPT</div>
+          <p>Rysar is a raw, unfiltered car content brand built around two friends doing what most people only watch — actually fixing, reviving, and building budget cars in Sweden. No fake setups. No polished workshop. Real tools, real failures, real wins.</p>
+          <div class="divider"></div>
+          <div class="mb8">
+            <span class="tag">Authentic</span><span class="tag">High-Energy</span><span class="tag">Budget Builds</span><span class="tag">Swedish</span><span class="tag">Emotional</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title cyan">◈ BRAND VOICE</div>
+          <ul class="styled">
+            <li>Chaotic but intentional — never boring</li>
+            <li>Self-deprecating humour without cringe</li>
+            <li>Swedish quirks are a feature, not a bug</li>
+            <li>Honest about failures — failures ARE the content</li>
+            <li>Respect for the cars and their history</li>
+            <li>Energy that makes 6am feel like midnight</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid-3 mb16">
+        <div class="card gold-card">
+          <div class="card-title gold">TARGET AUDIENCE</div>
+          <p>18–32 year old car enthusiasts who are broke but passionate. They fix things themselves, watch MrBeast for scale but Donut Media for soul. They respect honesty over perfection.</p>
+        </div>
+        <div class="card">
+          <div class="card-title cyan">CONTENT PILLARS</div>
+          <ul class="styled">
+            <li>The Revival Arc (before/after)</li>
+            <li>The Disaster Moments (authentic chaos)</li>
+            <li>Budget vs Reality (£50 car reality)</li>
+            <li>Sweden Vibes (location is identity)</li>
+            <li>The Human Story (Assar's father's cars)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title">BRAND POSITIONING</div>
+          <p>UK meets Sweden. Two idiots, cars that shouldn't run, and enough tools to be dangerous. Where Donut Media meets Taskmaster in a Swedish garage.</p>
+          <div class="divider"></div>
+          <span class="tag gold">Donut Media vibes</span>
+          <span class="tag">Taskmaster chaos</span>
+          <span class="tag cyan">Swedish soul</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">◈ NAME & VISUAL IDENTITY</div>
+        <div class="grid-3">
+          <div>
+            <h3>RYSAR</h3>
+            <p>Swedish for "shudders" or "trembles" — exactly what these cars do. Double meaning: the cold of Sweden, the adrenaline of getting a dead car to start.</p>
+          </div>
+          <div>
+            <h3>VISUAL LANGUAGE</h3>
+            <ul class="styled">
+              <li>Dark backgrounds, raw textures</li>
+              <li>Grease-stained aesthetic</li>
+              <li>Swedish flag red as accent</li>
+              <li>Handwritten notes in thumbnails</li>
+              <li>Stark before/after splits</li>
+            </ul>
+          </div>
+          <div>
+            <h3>TONE ON CAMERA</h3>
+            <ul class="styled">
+              <li>Genuine reactions only</li>
+              <li>No re-takes for bad moments</li>
+              <li>Speak to the camera like a friend</li>
+              <li>Celebrate the small wins loudly</li>
+              <li>Laugh at everything that goes wrong</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: TIKTOK -->
+    <div class="tab-content" id="tab-tiktok">
+      <div class="page-header">
+        <div class="page-title">TIKTOK <span>STRATEGY</span></div>
+        <div class="page-subtitle">// ALGORITHM-FIRST GROWTH SYSTEM</div>
+      </div>
+
+      <div class="grid-4 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">3x</div><div class="stat-label">Posts Per Day (Trip)</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">33</div><div class="stat-label">Videos from 11 Days</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">3s</div><div class="stat-label">Hook Window</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--green)">60%</div><div class="stat-label">Watch Time Target</div></div>
+      </div>
+
+      <div class="mb16">
+        <h3>HOOK FORMULAS</h3>
+        <p style="margin-bottom:12px">The first 3 seconds determine everything. These are your proven hook patterns:</p>
+
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 01 — THE IMPOSSIBLE CLAIM</span>
+          "This car hasn't moved in 7 years. We're going to drive it out of here by tonight."
+        </div>
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 02 — THE BEFORE REVEAL</span>
+          "This is everything that was inside a car that sat in a Swedish field for a decade." [cut to disgusting interior]
+        </div>
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 03 — THE CHALLENGE</span>
+          "We spent £85 on this Swedish estate car. Everyone said it was a write-off. Let's see."
+        </div>
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 04 — THE RELATABLE DISASTER</span>
+          "Day 3 and we've already snapped two bolts, flooded the carb, and I've lost a glove somewhere inside the engine bay."
+        </div>
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 05 — THE LOCATION CURIOSITY</span>
+          "Nobody tells you how cold a Swedish garage is at 7am in October. Watch us try to start a car with frozen fingers."
+        </div>
+        <div class="hook-box">
+          <span class="hook-label">HOOK TYPE 06 — THE EMOTIONAL ANCHOR</span>
+          "These cars belonged to someone. Before we start turning wrenches, you need to understand why we're here."
+        </div>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="card-title">CONTENT SERIES</div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header">
+              <span class="tag">Series 1</span> The Revival Arc <span class="arrow">▶</span>
+            </div>
+            <div class="expandable-body">
+              <p>Document each car as a complete story arc. Ep 1: The reveal. Ep 2–3: The attempt. Ep 4: The result. Each episode ends on a cliffhanger or question that pulls viewers to the next. Caption template: "Part [X] — [cliffhanger]"</p>
+            </div>
+          </div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header">
+              <span class="tag">Series 2</span> Budget Reality Check <span class="arrow">▶</span>
+            </div>
+            <div class="expandable-body">
+              <p>Running total on screen: "Spent so far: 450kr". Show trips to Biltema for parts. Real prices, real reactions. This format gets massive engagement from car people who've lived it.</p>
+            </div>
+          </div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header">
+              <span class="tag">Series 3</span> Swedish Parts Hunt <span class="arrow">▶</span>
+            </div>
+            <div class="expandable-body">
+              <p>Go to Biltema, Jula, scrapyards. Film the hunt. Prices in Swedish and UK terms. "This part costs £3 here and £22 back home" — that content formats extremely well.</p>
+            </div>
+          </div>
+          <div class="expandable" onclick="toggleExpand(this)">
+            <div class="expandable-header">
+              <span class="tag">Series 4</span> English Guy in Swedish Garage <span class="arrow">▶</span>
+            </div>
+            <div class="expandable-body">
+              <p>Cultural friction is comedy gold. Getting Swedish instructions, misreading signs, asking for help in broken Swedish. Frame it as fish-out-of-water storytelling — it broadens your audience beyond just car people.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title cyan">POSTING SCHEDULE</div>
+          <div class="template-box">{`DURING TRIP (11 DAYS)
+──────────────────────────
+08:00  → Day recap or morning vlog clip
+14:00  → Process/repair moment highlight  
+20:00  → Day result or reaction clip
+
+FORMATS PER DAY
+──────────────────────────
+Video 1: 45–60s condensed action
+Video 2: 15–20s reaction/funny moment
+Video 3: Talking head update / POV
+
+AUDIO STRATEGY
+──────────────────────────
+- First 0.5s: diegetic audio (engine, tools)
+- Add trending sound from past 7 days
+- Captions ON — 70% of viewers watch muted
+- Subtitles help SEO indexing`}</div>
+        </div>
+      </div>
+
+      <div class="card mb16">
+        <div class="card-title">CAPTION TEMPLATES</div>
+        <div class="grid-3">
+          <div>
+            <div class="hook-box">
+              <span class="hook-label">CAPTION — SHORT PUNCH</span>
+              day 4. she runs. i cried a little. 🇸🇪 #carrevival #sweden #budgetbuilds #rysar
+            </div>
+          </div>
+          <div>
+            <div class="hook-box">
+              <span class="hook-label">CAPTION — QUESTION BAIT</span>
+              we found something inside this car nobody was expecting. would you still buy it? 👀 #abandoned #carfinds #sweden
+            </div>
+          </div>
+          <div>
+            <div class="hook-box">
+              <span class="hook-label">CAPTION — COMMUNITY</span>
+              mechanics of tiktok — what would you do first? comment below and we'll actually do it #fixthis #carlover #diy
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title gold">HASHTAG STRATEGY</div>
+        <div class="grid-2">
+          <div>
+            <p class="mb8"><strong>Core Tags (always use)</strong></p>
+            <div>
+              <span class="tag">#rysar</span><span class="tag">#carrevival</span><span class="tag">#budgetbuild</span><span class="tag">#sweden</span><span class="tag">#carrestoration</span><span class="tag">#abandonedcar</span>
+            </div>
+          </div>
+          <div>
+            <p class="mb8"><strong>Rotating Tags (pick 3-4 per post)</strong></p>
+            <div>
+              <span class="tag cyan">#carsoftiktok</span><span class="tag cyan">#mechaniclife</span><span class="tag cyan">#fixerupper</span><span class="tag cyan">#JDM</span><span class="tag cyan">#euroclassic</span><span class="tag cyan">#garagelife</span><span class="tag cyan">#carculture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: FILM PLAN -->
+    <div class="tab-content" id="tab-filmplan">
+      <div class="page-header">
+        <div class="page-title">11-DAY <span>FILMING PLAN</span></div>
+        <div class="page-subtitle">// SWEDEN CONTENT BLITZ — DAY BY DAY BREAKDOWN</div>
+      </div>
+
+      <div class="grid-4 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">11</div><div class="stat-label">Filming Days</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">33+</div><div class="stat-label">TikToks to Create</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">4–6</div><div class="stat-label">Cars to Target</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--green)">90d</div><div class="stat-label">Content Backlog Goal</div></div>
+      </div>
+
+      <div class="scroll-area">
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">01</div>
+            <div class="day-info">
+              <div class="day-title">Arrival & The Reveal</div>
+              <div class="day-meta">ARRIVAL DAY — SETUP & FIRST LOOK</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>Set the stage. Document arrival, first impressions of the property and cars. This is your series pilot moment.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Wide drone/handheld shot of the property. Slow approach to the cars. No talking — let the visuals hit first.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Reaction to the state of the cars: "So this is what we're working with..." — genuine first impressions, no editing them out.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Quick inventory walk-through: show ALL the cars, number them, state the challenge. "Can we get at least one running in 11 days?"</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">02</div>
+            <div class="day-info">
+              <div class="day-title">The Deep Inspection</div>
+              <div class="day-meta">ASSESSMENT DAY — DIAGNOSE ALL CARS</div>
+            </div>
+            <div class="day-badge">4 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>Go through each car systematically. This is discovery content — the audience loves finding out what problems exist.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Interior reveal of Car 1: open the door slowly, react to what's inside. Dirt, debris, memories — all of it.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Under-bonnet inspection: point out obvious problems, estimate difficulty. "This is going to be the nightmare one."</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Wheels, rust, bodywork inspection on all cars. Create a score for each: 1–10 for how screwed we are.</li>
+              <li class="shot-item"><span class="shot-num">S04</span> End of day: commit to a plan. Which car first? Why? Announce it to camera like a competition show.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">03</div>
+            <div class="day-info">
+              <div class="day-title">Biltema Run & Parts Chaos</div>
+              <div class="day-meta">SUPPLY DAY — FILM THE HUNT</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>The Biltema/Jula trip is content gold. Document every purchase, price comparison, and moment of confusion.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Driving to Biltema: talk through what you need. Running budget display in post-production.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> In-store: navigate with a shopping list, find Swedish alternatives, react to prices vs UK. "This is £2?? In England this is £18."</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Parts unboxing back at the garage. Lay everything out. "Here's everything we bought for 680kr" — count it, show it.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">04</div>
+            <div class="day-info">
+              <div class="day-title">First Attempt — Car 1 Begins</div>
+              <div class="day-meta">REPAIR DAY — THE REAL WORK STARTS</div>
+            </div>
+            <div class="day-badge">4 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>Full day on Car 1. Document every step, every frustration. Don't skip the boring bits — they're the authentic ones.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Morning briefing: plan for the day, tools ready, estimate the time. Show the optimism — it makes the reality funnier.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Timelapse of the first major task (battery, fuel system, brakes). Occasional talking head interruptions.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> The first attempt to start: build the tension, film the reaction whatever it is. This is your episode climax.</li>
+              <li class="shot-item"><span class="shot-num">S04</span> End of day wrap: what worked, what didn't, what's next. Honest. Short. Direct to camera.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">05</div>
+            <div class="day-info">
+              <div class="day-title">Problem Solving Day</div>
+              <div class="day-meta">SETBACK — DOCUMENT THE STRUGGLE</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>Something will go wrong. This is your best content day. The worse it goes, the better the video.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> The problem reveal: find the issue, explain it clearly, show the consequence. React honestly.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> The creative fix attempt — budget constraints force creativity. Document the solution process.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Resolution (or escalation). Either way it's content. "We fixed it" OR "tomorrow we're trying something completely different."</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">06</div>
+            <div class="day-info">
+              <div class="day-title">The Breakthrough</div>
+              <div class="day-meta">WIN DAY — MAKE SOMETHING HAPPEN</div>
+            </div>
+            <div class="day-badge">4 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>Push for a milestone moment. First engine start, first movement, something significant. This is the emotional peak of the series.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Morning: "Today we're not leaving until she starts." Put the stakes on camera. No safety net.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> The moment of the milestone — film it from multiple angles if possible. Don't stop recording no matter what.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> The genuine celebration. Real emotions. "We did it." Keep this raw — don't clean it up in edit.</li>
+              <li class="shot-item"><span class="shot-num">S04</span> Reflection: what did this car mean? Why does it matter? (Brief emotional moment — don't overdo it.)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">07</div>
+            <div class="day-info">
+              <div class="day-title">Pivot to Car 2</div>
+              <div class="day-meta">FRESH CHALLENGE — NEW VEHICLE</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Transition content: recap Car 1 result, introduce Car 2 with fresh energy. "Okay. New car. Different problems. Let's go."</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Deep-dive inspection of Car 2 — compare it immediately to Car 1. Which is worse? Audience loves these comparisons.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Start the first repair. Keep momentum. Don't let the trip lose energy on day 7.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">08</div>
+            <div class="day-info">
+              <div class="day-title">Scrapyard & Deep Cuts</div>
+              <div class="day-meta">RESOURCE DAY — FIND PARTS THE HARD WAY</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Drive to a Swedish scrapyard (bilskrot). Film the environment — it's visually incredible content. Row after row of dead cars.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> The hunt for a specific part. Build tension: do they have it? Film the dig. Film the price negotiation.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Install the scrapyard part. Does it work? "100kr part from a field vs £60 brand new. Same result." That's a video.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">09</div>
+            <div class="day-info">
+              <div class="day-title">The Assembly Push</div>
+              <div class="day-meta">CRUNCH DAY — RACE AGAINST TIME</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Create urgency: "We have 3 days left. Two cars need to be driveable. Here's the plan." Time pressure = engagement.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Long work session: timelapse + talking heads. Show exhaustion. Authenticity in tiredness is compelling.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Progress check: what's left, what's done, what's been abandoned? Honest inventory on camera.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">10</div>
+            <div class="day-info">
+              <div class="day-title">The Test Drive</div>
+              <div class="day-meta">PEAK DAY — TAKE IT ON THE ROAD</div>
+            </div>
+            <div class="day-badge">4 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Pre-drive prep: check everything one last time. Build anticipation. "If this goes wrong, it goes wrong on camera."</li>
+              <li class="shot-item"><span class="shot-num">S02</span> The test drive. Film from inside and outside. First km in how many years? Make this a big deal — because it is.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Immediate reaction after pulling back. "That... actually worked." Don't script the emotion.</li>
+              <li class="shot-item"><span class="shot-num">S04</span> What broke on the test drive (something always does). That's your next video hook.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="day-card" onclick="toggleDay(this)">
+          <div class="day-header">
+            <div class="day-num">11</div>
+            <div class="day-info">
+              <div class="day-title">Final Day — Wrap & Legacy</div>
+              <div class="day-meta">FINALE — THE GOODBYE MOMENT</div>
+            </div>
+            <div class="day-badge">3 shots</div>
+            <div class="day-arrow">▶</div>
+          </div>
+          <div class="day-body">
+            <p>This is your most important day emotionally. Handle it with care. The cars belong to Assar's late father. That weight should be present — subtly, respectfully.</p>
+            <ul class="shot-list">
+              <li class="shot-item"><span class="shot-num">S01</span> Final state of all cars: before/after comparison. What we achieved, what we didn't. Honest ledger.</li>
+              <li class="shot-item"><span class="shot-num">S02</span> Assar's reflection (on his own terms — never pushed, never exploited). If he wants to say something about the cars and his father, that's his call and his moment.</li>
+              <li class="shot-item"><span class="shot-num">S03</span> Departure. The cars stay. You leave. That moment — driving away, looking back — is the shot that carries the whole trip.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: SCRIPTS -->
+    <div class="tab-content" id="tab-scripts">
+      <div class="page-header">
+        <div class="page-title">SCRIPTS & <span>CONTENT IDEAS</span></div>
+        <div class="page-subtitle">// READY-TO-FILM FORMATS & EPISODE CONCEPTS</div>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card accent-card">
+          <div class="card-title">◈ EPISODE FORMATS</div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header"><span class="tag">Format A</span> The 60-Second Slam <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p><strong>Structure:</strong> 0–3s Hook | 3–15s Problem | 15–50s Process | 50–60s Result or Cliffhanger</p>
+              <p>Best for: repair reveals, quick fixes, before/after. Keep cuts under 1.5 seconds. Use sound design to drive energy.</p>
+            </div>
+          </div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header"><span class="tag">Format B</span> The Talking Head Update <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p><strong>Structure:</strong> Direct to camera, no B-roll. 20–40 seconds. Honest daily update — what happened, how you feel, what's next. Builds parasocial relationship. Do this once a day minimum.</p>
+            </div>
+          </div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header"><span class="tag">Format C</span> The Reaction Clip <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p>Film a reaction to a moment: something breaks, something works, something unexpected is found inside a car. 10–20 seconds. No setup needed. These are your viral safety net — low effort, high return.</p>
+            </div>
+          </div>
+          <div class="expandable" onclick="toggleExpand(this)">
+            <div class="expandable-header"><span class="tag">Format D</span> The Mini-Doc (3–5 min) <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p>Full car story from arrival to result. Use on YouTube Shorts or as a TikTok series finale. This is the hero content — produced from raw footage. Edit with chapters: Act 1 (reveal), Act 2 (struggle), Act 3 (resolution).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title cyan">STANDALONE VIDEO IDEAS</div>
+          <ul class="styled">
+            <li>We bought the worst car at a Swedish auction for 500kr</li>
+            <li>Everything wrong with a car that sat outside for 8 winters</li>
+            <li>Swedish mechanics react to our repair attempts (collab idea)</li>
+            <li>Biltema vs UK car parts — same job, price comparison</li>
+            <li>Starting a carbureted engine after 6 years with zero prep</li>
+            <li>We found £200 worth of spare parts still in the boot</li>
+            <li>Can you daily a car with no heat in Sweden? (October content)</li>
+            <li>We tried fixing a car with only tools we found in the garage</li>
+            <li>Rating Swedish petrol station food while we wait for parts</li>
+            <li>The car that probably shouldn't be driven... we drove it</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mb16">
+        <h3>SAMPLE SCRIPT — "FIRST START ATTEMPT"</h3>
+        <div class="grid-2">
+          <div>
+            <p class="mb8" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;">OPENING (0–4s)</p>
+            <div class="hook-box">
+              <span class="hook-label">ON CAMERA</span>
+              [Stand in front of bonnet, engine bay visible] "This hasn't started since 2017. We've got a battery, some fresh fuel, and absolutely no idea if this is even possible. Let's try it."
+            </div>
+          </div>
+          <div>
+            <p class="mb8" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;">BODY (4–45s)</p>
+            <div class="hook-box">
+              <span class="hook-label">SEQUENCE</span>
+              [Cut: battery connect] "Battery in." [Cut: fuel check] "Tank's got fuel." [Cut: key in ignition] [Pause — hold it — let the tension breathe] [Turn key] [Whatever happens — hold the camera steady]
+            </div>
+          </div>
+        </div>
+        <div class="grid-2 mt16">
+          <div>
+            <p class="mb8" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;">IF IT STARTS (WIN VERSION)</p>
+            <div class="hook-box">
+              <span class="hook-label">REACTION</span>
+              [Don't cut. Let the engine run. Let the moment breathe 3–5 seconds.] "She's alive." [Pause] "Seven years. She's actually alive." Caption: "day 6. she started. i'm not okay 🥲"
+            </div>
+          </div>
+          <div>
+            <p class="mb8" style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px;">IF IT DOESN'T (FAIL VERSION)</p>
+            <div class="hook-box">
+              <span class="hook-label">REACTION</span>
+              [Look at camera. Long pause.] "Right. Okay. So." [Smirk] "Tomorrow we go to the scrapyard." Caption: "day 6. she did not start. follow for part 2 👀"
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title gold">CONTENT BACKLOG CALCULATOR</div>
+        <div class="grid-4">
+          <div class="stat-block"><div class="stat-value" style="color:var(--gold)">33</div><div class="stat-label">Trip Videos</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--accent)">66</div><div class="stat-label">Posts @ 3x/day</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">22d</div><div class="stat-label">Backlog @ 3x/day</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--green)">33d</div><div class="stat-label">Backlog @ 2x/day</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: SPONSORS -->
+    <div class="tab-content" id="tab-sponsors">
+      <div class="page-header">
+        <div class="page-title">SPONSORSHIP <span>STRATEGY</span></div>
+        <div class="page-subtitle">// FROM ZERO TO BRAND DEAL — SWEDISH MARKET FIRST</div>
+      </div>
+
+      <div class="grid-3 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">5</div><div class="stat-label">Priority Targets</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">3</div><div class="stat-label">Outreach Waves</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--green)">Product</div><div class="stat-label">First Deal Type</div></div>
+      </div>
+
+      <div class="mb16">
+        <h3>TIER 1 — SWEDISH AUTOMOTIVE BRANDS</h3>
+        <table class="sponsor-table">
+          <thead>
+            <tr>
+              <th>Brand</th>
+              <th>Fit</th>
+              <th>Type</th>
+              <th>Approach</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Biltema</strong></td>
+              <td><span class="fit-dot fit-high"></span>Very High</td>
+              <td>Product + Mention</td>
+              <td>Film buying parts there already — then reach out</td>
+              <td><span class="tag">Organic First</span></td>
+            </tr>
+            <tr>
+              <td><strong>Jula</strong></td>
+              <td><span class="fit-dot fit-high"></span>High</td>
+              <td>Product Deal</td>
+              <td>Collab on "Swedish garage toolkit for £0 budget"</td>
+              <td><span class="tag">Outreach Wave 1</span></td>
+            </tr>
+            <tr>
+              <td><strong>Mekonomen</strong></td>
+              <td><span class="fit-dot fit-high"></span>High</td>
+              <td>Sponsored Parts</td>
+              <td>Series: "Can Mekonomen parts fix a car from 2004?"</td>
+              <td><span class="tag">Outreach Wave 1</span></td>
+            </tr>
+            <tr>
+              <td><strong>Autoexperten</strong></td>
+              <td><span class="fit-dot fit-med"></span>Medium</td>
+              <td>Product + Code</td>
+              <td>Affiliate link + dedicated repair video</td>
+              <td><span class="tag">Outreach Wave 2</span></td>
+            </tr>
+            <tr>
+              <td><strong>Meca</strong></td>
+              <td><span class="fit-dot fit-med"></span>Medium</td>
+              <td>Brand Mention</td>
+              <td>Organic mention first, convert to paid after first 10k</td>
+              <td><span class="tag">Post-10k</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mb16">
+        <h3>TIER 2 — UK / INTERNATIONAL TARGETS</h3>
+        <table class="sponsor-table">
+          <thead>
+            <tr><th>Brand</th><th>Fit</th><th>Type</th><th>Target Milestone</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Halfords</strong></td>
+              <td><span class="fit-dot fit-high"></span>High</td>
+              <td>Product/Affiliate</td>
+              <td>5,000 followers</td>
+            </tr>
+            <tr>
+              <td><strong>Euro Car Parts</strong></td>
+              <td><span class="fit-dot fit-high"></span>High</td>
+              <td>Affiliate Code</td>
+              <td>5,000 followers</td>
+            </tr>
+            <tr>
+              <td><strong>Comma Oil</strong></td>
+              <td><span class="fit-dot fit-med"></span>Medium</td>
+              <td>Product Deal</td>
+              <td>10,000 followers</td>
+            </tr>
+            <tr>
+              <td><strong>Fix It Felix (similar)</strong></td>
+              <td><span class="fit-dot fit-med"></span>Medium</td>
+              <td>Integration</td>
+              <td>15,000 followers</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card accent-card">
+          <div class="card-title">◈ OUTREACH EMAIL TEMPLATE</div>
+          <div class="template-box">{`Subject: Rysar x [BRAND] — Car Content Partnership
+
+Hi [Name],
+
+I'm one half of Rysar — a raw car content brand built 
+around budget car revivals in Sweden. We're currently 
+filming an 11-day series reviving cars that belonged to 
+a family member who passed away.
+
+We're authentic, high-energy, and our audience are 
+exactly the people who buy from [BRAND]: hands-on, 
+budget-conscious car enthusiasts aged 18–32.
+
+I'd love to explore a product partnership — ideally 
+we feature [BRAND] as part of our actual repair 
+process, not as an ad insert. Real use, real results.
+
+We're early stage (which means low cost, high upside). 
+Happy to jump on a quick call.
+
+Cheers,
+[Your name] — Rysar`}</div>
+        </div>
+        <div class="card">
+          <div class="card-title cyan">DEAL STRUCTURE BY STAGE</div>
+          <div class="mt16">
+            <p class="mb8"><span class="tag">0–5K FOLLOWERS</span></p>
+            <ul class="styled mb16">
+              <li>Free product in exchange for integration</li>
+              <li>Affiliate link with 10–15% commission</li>
+              <li>Cross-post content from brand's page</li>
+            </ul>
+            <p class="mb8"><span class="tag gold">5K–20K FOLLOWERS</span></p>
+            <ul class="styled mb16">
+              <li>£100–500 per dedicated video</li>
+              <li>Product + fee for series integrations</li>
+              <li>Affiliate upgrade to flat rate</li>
+            </ul>
+            <p class="mb8"><span class="tag cyan">20K+ FOLLOWERS</span></p>
+            <ul class="styled">
+              <li>£500–2,000 per video</li>
+              <li>Series/retainer deals</li>
+              <li>Brand-building partnerships</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card gold-card">
+        <div class="card-title gold">◈ BILTEMA ORGANIC STRATEGY</div>
+        <p>Biltema is the dream first sponsor because you're already their customer. Film inside Biltema FIRST without a deal — show genuine product use, tag them, let organic content build before outreach. If a Biltema integration video performs well (above your average), that's your pitch deck clip. Approach them with: "We already created content with your products that got X views. Imagine what we could do together."</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: EMOTIONAL -->
+    <div class="tab-content" id="tab-emotional">
+      <div class="page-header">
+        <div class="page-title">EMOTIONAL <span>STORYTELLING</span></div>
+        <div class="page-subtitle">// HANDLING THE HUMAN STORY WITH INTENTION</div>
+      </div>
+
+      <div class="card accent-card mb16">
+        <div class="card-title">◈ THE CORE TRUTH</div>
+        <p>Assar's father left behind cars. They're not just vehicles — they're objects that carry memory, personality, and love. Rysar's job is to <em>honour</em> that, not exploit it. The emotional dimension of this project is what separates you from every other budget car channel. Handle it right and it becomes your most powerful differentiator. Handle it wrong and it becomes manipulative content.</p>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="card-title green">WHAT TO DO</div>
+          <ul class="styled">
+            <li>Let Assar lead any personal references — never push</li>
+            <li>Show the cars as objects of care and history naturally</li>
+            <li>Let quiet moments speak — a hand on a bonnet, a look</li>
+            <li>Reference "these belonged to someone important" once, clearly, early in the series</li>
+            <li>If Assar wants to share a memory, stop filming everything else and listen</li>
+            <li>The mechanical work IS the tribute — treat it that way</li>
+            <li>Getting a car running = giving something back to that memory</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="card-title" style="color:#ff6b6b">WHAT NOT TO DO</div>
+          <ul class="styled">
+            <li>Never make grief the primary hook in captions or thumbnails</li>
+            <li>Don't use sad music under working footage for effect</li>
+            <li>Don't prompt emotional responses from Assar on camera</li>
+            <li>Don't reference his father more than naturally occurs</li>
+            <li>Never position the content as "sad story car revival"</li>
+            <li>Don't exploit the emotional context for engagement spikes</li>
+            <li>Never cut to Assar's face for a dramatic reaction without consent</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card mb16">
+        <div class="card-title cyan">HOW EMOTIONAL DEPTH BUILDS THE BRAND</div>
+        <div class="grid-3">
+          <div>
+            <h3>DIFFERENTIATION</h3>
+            <p>Most car channels are about cars. Rysar is about people who love cars. That difference — felt rather than stated — is what creates genuine audience connection and long-term loyalty.</p>
+          </div>
+          <div>
+            <h3>RETENTION</h3>
+            <p>Viewers stay for the story, not the specs. When people care about Assar and these cars, they watch every video in the series. Emotional investment = algorithm performance.</p>
+          </div>
+          <div>
+            <h3>BRAND SAFETY</h3>
+            <p>Handling grief with class makes Rysar attractive to sponsors who want association with genuine, thoughtful creators — not just another chaos channel.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card gold-card">
+        <div class="card-title gold">◈ THE SERIES OPENER SCRIPT FRAMEWORK</div>
+        <div class="hook-box">
+          <span class="hook-label">SUGGESTED TONE FOR EPISODE 1 OPENING</span>
+          "There are about six cars on this property. They all ran at some point. None of them do right now. We're here to change that — but before we start, you should probably know why these cars are still here, and why that matters."
+        </div>
+        <p class="mt16">That's enough. Plant the seed. Don't explain it. Let viewers feel the weight without performing it. The actual story emerges across the series naturally — and that's far more powerful than stating it upfront.</p>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: WORKFLOW -->
+    <div class="tab-content" id="tab-workflow">
+      <div class="page-header">
+        <div class="page-title">WORKFLOW <span>SYSTEM</span></div>
+        <div class="page-subtitle">// DAILY OPERATING PROCEDURE FOR THE TRIP</div>
+      </div>
+
+      <div class="grid-3 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">3</div><div class="stat-label">Posts / Day</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">2h</div><div class="stat-label">Edit Time / Day</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">1TB</div><div class="stat-label">Storage Target</div></div>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card accent-card">
+          <div class="card-title">◈ DAILY SCHEDULE</div>
+          <div class="template-box">{`07:00  Wake + coffee. Plan today's shots (10 min)
+07:30  Filming begins — morning energy, good light
+12:00  Lunch break — sort and back up footage
+13:00  Afternoon filming session
+17:00  Golden hour B-roll: cars, garage, environment
+18:00  Edit the day's best 60s clip
+19:30  Post Video 1 (today's highlight)
+20:00  Edit talking head / reaction clip
+21:00  Post Video 2
+22:00  Plan tomorrow / Post Video 3 (scheduled)
+22:30  Charge all batteries. Card backup. Sleep.`}</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title cyan">GEAR CHECKLIST</div>
+          <ul class="styled">
+            <li>Main camera: fully charged, SD formatted</li>
+            <li>Backup camera or phone on tripod for second angle</li>
+            <li>Wireless mic charged (Rode Wireless GO or similar)</li>
+            <li>Spare batteries (minimum 4 per camera)</li>
+            <li>SD cards: 256GB minimum per day</li>
+            <li>Hard drive for nightly backup</li>
+            <li>Laptop for edit and post</li>
+            <li>Tripod + mount for engine bay shots</li>
+            <li>Magnetic mount for moving car shots</li>
+            <li>Good headlamp for dark garage work</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="card-title gold">EDIT SYSTEM</div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header">Folder Structure <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <div class="template-box">{`RYSAR_SWEDEN_2024/
+├── RAW/
+│   ├── DAY01/
+│   ├── DAY02/ ...
+├── SELECTS/
+│   ├── POSTED/
+│   ├── BACKLOG/
+├── EXPORTS/
+│   ├── TIKTOK/
+│   └── YOUTUBE/`}</div>
+            </div>
+          </div>
+          <div class="expandable mb8" onclick="toggleExpand(this)">
+            <div class="expandable-header">Edit Priority Rule <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p>Always edit TODAY'S footage first for posting. Then batch edit "B-material" for the content backlog. Never spend more than 90 minutes on a single TikTok edit — if it's taking longer, the footage isn't the right cut yet.</p>
+            </div>
+          </div>
+          <div class="expandable" onclick="toggleExpand(this)">
+            <div class="expandable-header">Caption System <span class="arrow">▶</span></div>
+            <div class="expandable-body">
+              <p>Write captions in a notes file throughout the day — when you film a good moment, immediately note a caption for it. You'll never remember the feeling later. Post timing: 08:00, 14:00, 20:00 CET for max Swedish + UK reach.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">SHOT TYPES TO ALWAYS GET</div>
+          <ul class="styled">
+            <li>Tool closeup at start of every job</li>
+            <li>Hands-on-part confirmation shot (shows scale)</li>
+            <li>Wide shot of full car before any work</li>
+            <li>Reaction to first obstacle</li>
+            <li>Timelapse of long tasks (set and forget)</li>
+            <li>Looking-into-engine-bay POV shot</li>
+            <li>The first turn of key / moment of truth</li>
+            <li>Genuine emotional reactions (do NOT cut)</li>
+            <li>B-roll: Swedish landscape, winter light, frost</li>
+            <li>End-of-day "what happened" direct to camera</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card cyan-card">
+        <div class="card-title cyan">POSTING RHYTHM — STICK TO THIS</div>
+        <p>The algorithm rewards consistency more than quality. Post 3x per day even if one video is just a 15-second reaction clip. Momentum matters more than perfection during the trip. You can polish content in the backlog phase. Right now: volume, energy, authenticity.</p>
+        <div class="grid-4 mt16">
+          <div class="stat-block"><div class="stat-value" style="color:var(--cyan);font-size:24px">08:00</div><div class="stat-label">Morning Post</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--accent);font-size:24px">14:00</div><div class="stat-label">Afternoon Post</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--gold);font-size:24px">20:00</div><div class="stat-label">Evening Post</div></div>
+          <div class="stat-block"><div class="stat-value" style="color:var(--green);font-size:24px">+1</div><div class="stat-label">Bonus If Possible</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ TAB: CHECKLIST -->
+    <div class="tab-content" id="tab-checklist">
+      <div class="page-header">
+        <div class="page-title">MASTER <span>CHECKLIST</span></div>
+        <div class="page-subtitle">// FULL OPERATIONAL READINESS TRACKER</div>
+      </div>
+
+      <div class="master-progress">
+        <div class="master-pct" id="master-pct">0%</div>
+        <div class="master-info">
+          <div class="master-label">Overall Completion</div>
+          <div class="progress-bar-outer" style="margin-bottom:8px">
+            <div class="progress-bar-inner" id="master-bar" style="width:0%"></div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">
+            <span id="master-done">0</span> of <span id="master-total">0</span> tasks completed
+          </div>
+        </div>
+      </div>
+
+      <div id="checklist-container"></div>
+
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(id, el) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ============================================================
+// EXPANDABLE CARDS
+// ============================================================
+function toggleExpand(el) {
+  el.classList.toggle('open');
+}
+
+// ============================================================
+// DAY CARDS
+// ============================================================
+function toggleDay(el) {
+  el.classList.toggle('open');
+}
+
+// ============================================================
+// CHECKLIST DATA
+// ============================================================
+const checklistData = [
+  {
+    id: 'pretrip',
+    title: 'PRE-TRIP SETUP',
+    icon: '◈',
+    items: [
+      { id: 'pt1', text: 'Set up TikTok account as Creator account', sub: 'Enable analytics + monetisation from day 1' },
+      { id: 'pt2', text: 'Create @rysar handle on TikTok, Instagram, YouTube', sub: 'Secure all handles before content goes live' },
+      { id: 'pt3', text: 'Write brand bio (under 150 chars) and set profile photo', sub: '"Raw car revivals in Sweden 🇸🇪 — budget builds, real chaos"' },
+      { id: 'pt4', text: 'Set up Google Drive folder structure for the trip', sub: 'RAW / SELECTS / EXPORTS / BACKLOG' },
+      { id: 'pt5', text: 'Charge all camera batteries and test gear before travel', sub: 'Main cam, backup, mics, spare batteries' },
+      { id: 'pt6', text: 'Pack at least 4x 256GB SD cards', sub: 'You will fill more than you think' },
+      { id: 'pt7', text: 'Confirm portable hard drive for nightly backups', sub: '2TB minimum recommended' },
+      { id: 'pt8', text: 'Download CapCut or editing app on phone for quick edits', sub: 'Also have laptop for more complex cuts' },
+      { id: 'pt9', text: 'Research Biltema and local scrapyard locations near property', sub: 'Have addresses ready — don\'t waste filming day finding them' },
+      { id: 'pt10', text: 'Brief Assar on content plan and emotional story approach', sub: 'Agree on what\'s on and off limits before cameras roll' },
+    ]
+  },
+  {
+    id: 'daily',
+    title: 'DAILY FILMING CHECKLIST',
+    icon: '◉',
+    items: [
+      { id: 'df1', text: 'Morning gear check: batteries, SD cards, mics working', sub: 'Do this before leaving for the garage' },
+      { id: 'df2', text: 'Record the day\'s opening shot within first 30 minutes', sub: 'Set the scene — location, weather, energy level' },
+      { id: 'df3', text: 'Film "what we\'re doing today" direct to camera (1 min max)', sub: 'This is your talking head post — do it every single day' },
+      { id: 'df4', text: 'Set up timelapse for any task taking over 20 minutes', sub: 'Tripod, wide angle, set and forget' },
+      { id: 'df5', text: 'Capture every reaction uncut — wins AND failures', sub: 'Never re-take a genuine reaction' },
+      { id: 'df6', text: 'Film engine bay / under-car close-ups with good light', sub: 'Use headlamp as fill if needed' },
+      { id: 'df7', text: 'Get B-roll: Swedish surroundings, tools, hands on metal', sub: 'Minimum 10 minutes of B-roll per day' },
+      { id: 'df8', text: 'Note 3 potential TikTok captions from today\'s moments', sub: 'Write in phone notes immediately while fresh' },
+      { id: 'df9', text: 'Nightly footage backup to hard drive before sleep', sub: 'NEVER skip this. Cards fail.' },
+    ]
+  },
+  {
+    id: 'content',
+    title: 'CONTENT CAPTURE CHECKLIST',
+    icon: '▲',
+    items: [
+      { id: 'cc1', text: 'Film initial reveal of each car (first look, no cuts)', sub: 'This is sacred — don\'t over-direct it' },
+      { id: 'cc2', text: 'Capture interior of each car before cleaning anything', sub: 'The mess is the content — document all of it' },
+      { id: 'cc3', text: 'Film under bonnet of each car with commentary', sub: 'Identify key issues on camera' },
+      { id: 'cc4', text: 'Get the first key turn / start attempt for each car', sub: 'Film from inside AND outside if possible' },
+      { id: 'cc5', text: 'Document every Biltema/Jula parts trip', sub: 'Show prices, reactions, product selection' },
+      { id: 'cc6', text: 'Film scrapyard visit with exploration B-roll', sub: 'Environment shots are gold — rows of dead cars' },
+      { id: 'cc7', text: 'Capture the first test drive of each car', sub: 'Film from outside and with in-car dash cam/phone' },
+      { id: 'cc8', text: 'Get final state of all cars on day 11 — before/after compare', sub: 'Side by side if possible' },
+      { id: 'cc9', text: 'Film departure moment — leaving the property', sub: 'This is your emotional series closer' },
+    ]
+  },
+  {
+    id: 'sponsor',
+    title: 'SPONSOR OUTREACH CHECKLIST',
+    icon: '◇',
+    items: [
+      { id: 'so1', text: 'Organically film Biltema content before any outreach', sub: 'Build the case with real footage first' },
+      { id: 'so2', text: 'Draft personalised outreach emails for Biltema, Jula, Mekonomen', sub: 'Use the template in Sponsorship tab as a base' },
+      { id: 'so3', text: 'Find marketing contact emails for each target brand', sub: 'LinkedIn + brand website contact pages' },
+      { id: 'so4', text: 'Create a simple media kit: who Rysar is, what you make, why it matters', sub: 'One page PDF is enough at this stage' },
+      { id: 'so5', text: 'Send Wave 1 outreach to top 3 Swedish brands after first 5 videos are live', sub: 'Don\'t pitch before you have content to show' },
+      { id: 'so6', text: 'Set up affiliate accounts with Halfords and Euro Car Parts (UK)', sub: 'These are low-barrier first revenue streams' },
+      { id: 'so7', text: 'Follow up on outreach emails after 7 days if no response', sub: 'One follow-up only — keep it short and confident' },
+    ]
+  },
+  {
+    id: 'posting',
+    title: 'POSTING CHECKLIST',
+    icon: '≡',
+    items: [
+      { id: 'po1', text: 'Post first TikTok within 24h of arriving in Sweden', sub: 'The arrival energy is content — use it' },
+      { id: 'po2', text: 'Maintain 3x per day posting during the 11-day trip', sub: '08:00 / 14:00 / 20:00 CET — schedule in advance when possible' },
+      { id: 'po3', text: 'Add captions/subtitles to every video', sub: '70% of TikTok is watched muted — caption everything' },
+      { id: 'po4', text: 'Reply to every comment on first 5 videos', sub: 'Build the community from the first post' },
+      { id: 'po5', text: 'Cross-post to Instagram Reels with adjusted captions', sub: 'Same video, slightly different hook text for IG audience' },
+      { id: 'po6', text: 'Save all raw footage for future YouTube long-form edit', sub: 'The trip becomes a YouTube series later' },
+      { id: 'po7', text: 'Pin best-performing video to TikTok profile', sub: 'Update pin every time a video outperforms the current one' },
+    ]
+  },
+  {
+    id: 'brand',
+    title: 'BRAND SETUP CHECKLIST',
+    icon: '✓',
+    items: [
+      { id: 'br1', text: 'Finalise Rysar logo (simple wordmark minimum)', sub: 'Doesn\'t need to be perfect — just consistent' },
+      { id: 'br2', text: 'Create branded TikTok outro (last 3s of each video)', sub: '"Follow Rysar" with consistent sound' },
+      { id: 'br3', text: 'Set up link-in-bio page (Linktree or similar)', sub: 'Link to all platforms + eventual merch/sponsor page' },
+      { id: 'br4', text: 'Define and document brand colours and fonts', sub: 'Used for thumbnails, text overlays, captions style' },
+      { id: 'br5', text: 'Create a thumbnail template for YouTube / longer form content', sub: 'Bold text, contrast, face/reaction visible if possible' },
+      { id: 'br6', text: 'Write pinned comment template for early videos', sub: '"Follow the full series" + CTA for next part' },
+      { id: 'br7', text: 'Set up email address for brand inquiries', sub: 'rysar@... — use for sponsor outreach responses' },
+    ]
+  }
+];
+
+// ============================================================
+// RENDER CHECKLIST
+// ============================================================
+function renderChecklist() {
+  const saved = JSON.parse(localStorage.getItem('rysar_checklist') || '{}');
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+
+  let totalItems = 0;
+  let totalDone = 0;
+
+  checklistData.forEach(group => {
+    const groupEl = document.createElement('div');
+    groupEl.className = 'checklist-group';
+
+    let groupDone = group.items.filter(i => saved[i.id]).length;
+    let groupTotal = group.items.length;
+    totalItems += groupTotal;
+    totalDone += groupDone;
+
+    groupEl.innerHTML = `
+      <div class="checklist-group-header">
+        <span style="color:var(--accent)">${group.icon}</span>
+        ${group.title}
+        <span class="group-progress">${groupDone}/${groupTotal}</span>
+      </div>
+      <div class="progress-bar-outer mb16" style="margin-bottom:12px">
+        <div class="progress-bar-inner" style="width:${groupTotal ? (groupDone/groupTotal*100) : 0}%"></div>
+      </div>
+    `;
+
+    group.items.forEach(item => {
+      const isChecked = !!saved[item.id];
+      const itemEl = document.createElement('div');
+      itemEl.className = `checklist-item ${isChecked ? 'checked' : ''}`;
+      itemEl.dataset.id = item.id;
+      itemEl.dataset.group = group.id;
+      itemEl.innerHTML = `
+        <div class="check-box"></div>
+        <div>
+          <div class="item-text">${item.text}</div>
+          ${item.sub ? `<div class="item-sub">${item.sub}</div>` : ''}
+        </div>
+      `;
+      itemEl.addEventListener('click', () => toggleItem(item.id));
+      groupEl.appendChild(itemEl);
+    });
+
+    container.appendChild(groupEl);
+  });
+
+  // Update master progress
+  const pct = totalItems ? Math.round(totalDone / totalItems * 100) : 0;
+  document.getElementById('master-pct').textContent = pct + '%';
+  document.getElementById('master-bar').style.width = pct + '%';
+  document.getElementById('master-done').textContent = totalDone;
+  document.getElementById('master-total').textContent = totalItems;
+
+  // Update badge
+  document.getElementById('checklist-badge').textContent = pct + '%';
+}
+
+function toggleItem(id) {
+  const saved = JSON.parse(localStorage.getItem('rysar_checklist') || '{}');
+  saved[id] = !saved[id];
+  if (!saved[id]) delete saved[id];
+  localStorage.setItem('rysar_checklist', JSON.stringify(saved));
+  renderChecklist();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+renderChecklist();
+</script>
+</body>
+</html>
