@@ -430,11 +430,32 @@
     align-items: center;
     gap: 12px;
   }
+  .checklist-group-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .group-progress {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
     color: var(--text3);
-    margin-left: auto;
+    margin-left: 0;
+  }
+  .checklist-action-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .checklist-action-btn:hover {
+    border-color: var(--accent);
+    color: var(--text);
   }
 
   .checklist-item {
@@ -482,6 +503,29 @@
 
   .item-text { font-size: 13px; line-height: 1.4; }
   .item-sub { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .checklist-item:hover .item-actions { opacity: 1; }
+  .item-action-btn {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+  }
+  .item-action-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
 
   /* MASTER PROGRESS */
   .master-progress {
@@ -1929,18 +1973,149 @@ const checklistData = [
   }
 ];
 
+const CHECKLIST_COMPLETION_KEY = 'rysar_checklist';
+const CHECKLIST_CUSTOM_KEY = 'rysar_checklist_custom';
+const CHECKLIST_SCHEMA_VERSION = 1;
+
+function loadChecklistCustomState() {
+  const fallback = {
+    schemaVersion: CHECKLIST_SCHEMA_VERSION,
+    userItemsByGroup: {},
+    itemEdits: {},
+    deletedItemIds: {}
+  };
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHECKLIST_CUSTOM_KEY) || '{}');
+    return {
+      schemaVersion: typeof parsed.schemaVersion === 'number' ? parsed.schemaVersion : CHECKLIST_SCHEMA_VERSION,
+      userItemsByGroup: parsed.userItemsByGroup && typeof parsed.userItemsByGroup === 'object' ? parsed.userItemsByGroup : {},
+      itemEdits: parsed.itemEdits && typeof parsed.itemEdits === 'object' ? parsed.itemEdits : {},
+      deletedItemIds: parsed.deletedItemIds && typeof parsed.deletedItemIds === 'object' ? parsed.deletedItemIds : {}
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveChecklistCustomState(state) {
+  const normalized = {
+    schemaVersion: CHECKLIST_SCHEMA_VERSION,
+    userItemsByGroup: state.userItemsByGroup || {},
+    itemEdits: state.itemEdits || {},
+    deletedItemIds: state.deletedItemIds || {}
+  };
+  localStorage.setItem(CHECKLIST_CUSTOM_KEY, JSON.stringify(normalized));
+}
+
+function composeChecklistData() {
+  const custom = loadChecklistCustomState();
+  return checklistData.map((group) => {
+    const baseItems = group.items
+      .filter((item) => !custom.deletedItemIds[item.id])
+      .map((item) => {
+        const edit = custom.itemEdits[item.id];
+        return {
+          ...item,
+          text: edit?.text ?? item.text,
+          sub: edit?.sub ?? item.sub,
+          isUser: false
+        };
+      });
+
+    const userItems = (custom.userItemsByGroup[group.id] || []).map((item) => ({
+      ...item,
+      isUser: true
+    }));
+
+    return {
+      ...group,
+      items: [...baseItems, ...userItems]
+    };
+  });
+}
+
+function promptChecklistItem(existing = {}) {
+  const text = prompt('Item text', existing.text || '');
+  if (text === null) return null;
+  if (!text.trim()) return null;
+  const sub = prompt('Item subtext (optional)', existing.sub || '');
+  if (sub === null) return null;
+  return { text: text.trim(), sub: sub.trim() };
+}
+
+function createUserChecklistItem(groupId) {
+  const drafted = promptChecklistItem();
+  if (!drafted) return;
+
+  const custom = loadChecklistCustomState();
+  const userItems = custom.userItemsByGroup[groupId] || [];
+  const itemId = `user-${groupId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  userItems.push({ id: itemId, text: drafted.text, sub: drafted.sub });
+  custom.userItemsByGroup[groupId] = userItems;
+  saveChecklistCustomState(custom);
+  renderChecklist();
+}
+
+function editChecklistItem(itemId, groupId, isUserItem) {
+  const composed = composeChecklistData();
+  const group = composed.find((g) => g.id === groupId);
+  const item = group?.items.find((i) => i.id === itemId);
+  if (!item) return;
+
+  const drafted = promptChecklistItem(item);
+  if (!drafted) return;
+
+  const custom = loadChecklistCustomState();
+  if (isUserItem) {
+    const userItems = custom.userItemsByGroup[groupId] || [];
+    custom.userItemsByGroup[groupId] = userItems.map((entry) => (
+      entry.id === itemId ? { ...entry, text: drafted.text, sub: drafted.sub } : entry
+    ));
+  } else {
+    custom.itemEdits[itemId] = { text: drafted.text, sub: drafted.sub };
+  }
+
+  saveChecklistCustomState(custom);
+  renderChecklist();
+}
+
+function deleteChecklistItem(itemId, groupId, isUserItem) {
+  const shouldDelete = confirm('Delete this checklist item?');
+  if (!shouldDelete) return;
+
+  const custom = loadChecklistCustomState();
+  if (isUserItem) {
+    const userItems = custom.userItemsByGroup[groupId] || [];
+    custom.userItemsByGroup[groupId] = userItems.filter((entry) => entry.id !== itemId);
+  } else {
+    custom.deletedItemIds[itemId] = true;
+    delete custom.itemEdits[itemId];
+  }
+
+  const saved = JSON.parse(localStorage.getItem(CHECKLIST_COMPLETION_KEY) || '{}');
+  if (saved[itemId]) {
+    delete saved[itemId];
+    localStorage.setItem(CHECKLIST_COMPLETION_KEY, JSON.stringify(saved));
+  }
+
+  saveChecklistCustomState(custom);
+  renderChecklist();
+}
+
 // ============================================================
 // RENDER CHECKLIST
 // ============================================================
 function renderChecklist() {
-  const saved = JSON.parse(localStorage.getItem('rysar_checklist') || '{}');
+  const saved = JSON.parse(localStorage.getItem(CHECKLIST_COMPLETION_KEY) || '{}');
+  const data = composeChecklistData();
   const container = document.getElementById('checklist-container');
   container.innerHTML = '';
 
   let totalItems = 0;
   let totalDone = 0;
 
-  checklistData.forEach(group => {
+  data.forEach(group => {
     const groupEl = document.createElement('div');
     groupEl.className = 'checklist-group';
 
@@ -1953,7 +2128,10 @@ function renderChecklist() {
       <div class="checklist-group-header">
         <span style="color:var(--accent)">${group.icon}</span>
         ${group.title}
-        <span class="group-progress">${groupDone}/${groupTotal}</span>
+        <div class="checklist-group-actions">
+          <button class="checklist-action-btn" type="button" data-group-add="${group.id}">+ Add item</button>
+          <span class="group-progress">${groupDone}/${groupTotal}</span>
+        </div>
       </div>
       <div class="progress-bar-outer mb16" style="margin-bottom:12px">
         <div class="progress-bar-inner" style="width:${groupTotal ? (groupDone/groupTotal*100) : 0}%"></div>
@@ -1968,13 +2146,30 @@ function renderChecklist() {
       itemEl.dataset.group = group.id;
       itemEl.innerHTML = `
         <div class="check-box"></div>
-        <div>
+        <div class="item-body">
           <div class="item-text">${item.text}</div>
           ${item.sub ? `<div class="item-sub">${item.sub}</div>` : ''}
         </div>
+        <div class="item-actions">
+          <button class="item-action-btn" type="button" data-item-edit="${item.id}" data-item-group="${group.id}" data-item-user="${item.isUser ? '1' : '0'}">Edit</button>
+          <button class="item-action-btn" type="button" data-item-delete="${item.id}" data-item-group="${group.id}" data-item-user="${item.isUser ? '1' : '0'}">Delete</button>
+        </div>
       `;
       itemEl.addEventListener('click', () => toggleItem(item.id));
+
+      itemEl.querySelector('[data-item-edit]')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        editChecklistItem(item.id, group.id, !!item.isUser);
+      });
+      itemEl.querySelector('[data-item-delete]')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        deleteChecklistItem(item.id, group.id, !!item.isUser);
+      });
       groupEl.appendChild(itemEl);
+    });
+
+    groupEl.querySelector(`[data-group-add="${group.id}"]`)?.addEventListener('click', () => {
+      createUserChecklistItem(group.id);
     });
 
     container.appendChild(groupEl);
@@ -1994,10 +2189,10 @@ function renderChecklist() {
 }
 
 function toggleItem(id) {
-  const saved = JSON.parse(localStorage.getItem('rysar_checklist') || '{}');
+  const saved = JSON.parse(localStorage.getItem(CHECKLIST_COMPLETION_KEY) || '{}');
   saved[id] = !saved[id];
   if (!saved[id]) delete saved[id];
-  localStorage.setItem('rysar_checklist', JSON.stringify(saved));
+  localStorage.setItem(CHECKLIST_COMPLETION_KEY, JSON.stringify(saved));
   renderChecklist();
 }
 
