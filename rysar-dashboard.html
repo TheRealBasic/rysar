@@ -756,6 +756,7 @@
     .grid-4 { grid-template-columns: 1fr 1fr; }
   }
 </style>
+<link rel="stylesheet" href="./rysar-extension.css">
 </head>
 <body>
 <div class="bg-layer" aria-hidden="true">
@@ -807,6 +808,11 @@
     </div>
     <div class="nav-item" data-tab="emotional" onclick="switchTab('emotional', this)">
       <span class="nav-icon">♡</span> Emotional Story
+    </div>
+
+    <div class="nav-section-label">Command Center</div>
+    <div class="nav-item" data-tab="command" onclick="switchTab('command', this)">
+      <span class="nav-icon">⚡</span> Mission Control
     </div>
 
     <div class="nav-section-label">Operations</div>
@@ -1900,6 +1906,104 @@ Cheers,
       </div>
     </div>
 
+    <!-- ============================================================ TAB: COMMAND -->
+    <div class="tab-content" id="tab-command">
+      <div class="page-header">
+        <div class="page-title">MISSION <span>CONTROL</span></div>
+        <div class="page-subtitle">// DAILY SYSTEM FOR RYSAR + ASSAR TO IDEATE, EXECUTE, TRACK, AND WIN</div>
+      </div>
+
+      <div class="grid-4 mb24">
+        <div class="stat-block"><div class="stat-value" style="color:var(--accent)">2</div><div class="stat-label">Builders In Sync</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--gold)">5</div><div class="stat-label">Production Lanes</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--cyan)">30</div><div class="stat-label">Idea Vault Capacity</div></div>
+        <div class="stat-block"><div class="stat-value" style="color:var(--green)">∞</div><div class="stat-label">Iteration Speed</div></div>
+      </div>
+
+      <div class="command-grid mb24">
+        <div class="command-col">
+          <div class="card accent-card">
+            <div class="card-title">⚡ SPRINT TASK BOARD</div>
+            <form id="command-task-form" class="creator-form">
+              <input id="command-task-input" class="creator-input" type="text" placeholder="Add a task: e.g. Shoot Volvo cold start hook" />
+              <div class="grid-3">
+                <select id="command-owner" class="creator-select">
+                  <option>Rysar</option>
+                  <option>Assar</option>
+                  <option>Both</option>
+                </select>
+                <select id="command-lane" class="creator-select">
+                  <option>Backlog</option>
+                  <option>Filming</option>
+                  <option>Editing</option>
+                  <option>Scheduled</option>
+                  <option>Published</option>
+                </select>
+                <button class="creator-btn" type="submit">Add Task</button>
+              </div>
+            </form>
+            <div class="divider"></div>
+            <div id="command-task-empty" class="item-sub">No tasks yet. Add your first move and start the streak.</div>
+            <div id="command-task-list" class="kanban-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title cyan">✦ CAPTION + HOOK ENGINE</div>
+            <div class="mini-label">Idea Input</div>
+            <textarea id="idea-input" class="creator-textarea" placeholder="Drop raw idea here: car, scene, emotional beat, challenge..."></textarea>
+            <div class="inline-actions mt16">
+              <button id="save-idea-btn" class="creator-btn secondary" type="button">Save Idea To Vault</button>
+              <button id="generate-hook-btn" class="creator-btn" type="button">Generate Hook</button>
+              <button id="generate-caption-btn" class="creator-btn" type="button">Generate Caption</button>
+            </div>
+            <div class="hook-box mt16">
+              <span class="hook-label">Fresh Hook</span>
+              <span id="hook-output">Press "Generate Hook" for a new opening line.</span>
+            </div>
+            <div class="mini-label mt16">Caption Draft</div>
+            <textarea id="caption-output" class="creator-textarea" placeholder="Generated caption appears here..."></textarea>
+          </div>
+        </div>
+
+        <div class="command-col">
+          <div class="card cyan-card">
+            <div class="card-title cyan">◈ LIVE KPI SNAPSHOT</div>
+            <div class="metrics-grid mb16">
+              <div class="metric-box"><div id="metric-card-followers" class="metric-num">0</div><div class="metric-caption">Followers</div></div>
+              <div class="metric-box"><div id="metric-card-views" class="metric-num">0</div><div class="metric-caption">Total Views</div></div>
+              <div class="metric-box"><div id="metric-card-posts" class="metric-num">0</div><div class="metric-caption">Posts Shipped</div></div>
+              <div class="metric-box"><div id="metric-card-collabs" class="metric-num">0</div><div class="metric-caption">Brand/Creator Collabs</div></div>
+            </div>
+            <table class="table-lite">
+              <thead><tr><th>Metric</th><th>Update</th></tr></thead>
+              <tbody>
+                <tr><td>Followers</td><td><input id="metric-followers" class="creator-input" type="number" min="0" value="0"></td></tr>
+                <tr><td>Views</td><td><input id="metric-views" class="creator-input" type="number" min="0" value="0"></td></tr>
+                <tr><td>Posts</td><td><input id="metric-posts" class="creator-input" type="number" min="0" value="0"></td></tr>
+                <tr><td>Collabs</td><td><input id="metric-collabs" class="creator-input" type="number" min="0" value="0"></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card gold-card">
+            <div class="card-title gold">◇ IDEA VAULT</div>
+            <p>Store every rough concept immediately. Nothing gets lost. Your next viral format is usually hidden in half-finished notes.</p>
+            <div id="idea-list" class="pill-row"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title green">♡ WIN LOG + MORALE SYSTEM</div>
+            <div class="inline-actions mb16">
+              <input id="wins-input" class="creator-input" type="text" placeholder="Log a win (e.g. First 10k view video)" />
+              <button id="add-win-btn" class="creator-btn" type="button">Add Win</button>
+            </div>
+            <div id="wins-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
     <!-- ============================================================ TAB: CHECKLIST -->
     <div class="tab-content" id="tab-checklist">
       <div class="page-header">
@@ -2880,5 +2984,6 @@ document.getElementById('clear-search-btn')?.addEventListener('click', () => {
   applySearchFilter();
 });
 </script>
+<script src="./rysar-extension.js"></script>
 </body>
 </html>
