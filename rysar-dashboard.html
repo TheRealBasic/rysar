@@ -361,6 +361,59 @@
   .tag.cyan { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.25); color: var(--cyan); }
   .tag.green { background: rgba(0,230,118,0.1); border-color: rgba(0,230,118,0.25); color: var(--green); }
 
+  .section-kicker {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .tool-meta-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .tool-meta-table tr + tr { border-top: 1px solid var(--border); }
+  .tool-meta-table td {
+    padding: 8px 0;
+    vertical-align: top;
+  }
+  .tool-meta-label {
+    width: 42%;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding-right: 10px;
+  }
+  .tool-meta-value {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.45;
+  }
+  .tool-cta {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--accent2);
+    border: 1px solid rgba(232,57,14,0.35);
+    background: rgba(232,57,14,0.12);
+    border-radius: 4px;
+    padding: 6px 10px;
+    transition: all 0.2s;
+  }
+  .tool-cta:hover {
+    color: #fff;
+    border-color: var(--accent);
+    background: rgba(232,57,14,0.22);
+  }
+
   .hook-box {
     background: var(--bg3);
     border: 1px solid var(--border2);
@@ -1712,6 +1765,110 @@ Cheers,
           <span class="tag">Prompt Library</span>
           <span class="tag cyan">Reusable</span>
           <span class="tag gold">Performance Tracked</span>
+        </div>
+      </div>
+
+      <div class="section-kicker">Video Editing</div>
+      <div class="grid-2 mb16">
+        <div class="card">
+          <div class="card-title cyan">CAPCUT</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Fast short-form edits, auto-captions, and mobile-first social exports.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">capcut.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free plan available; Pro starts around $9.99/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Kdenlive + Whisper subtitle workflow.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://www.capcut.com/" target="_blank" rel="noopener noreferrer">Open CapCut ↗</a>
+        </div>
+        <div class="card">
+          <div class="card-title">DESCRIPT</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Edit by transcript, remove filler words, and repurpose clips quickly.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">descript.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free tier; paid plans start around $12/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Kdenlive + Audacity for post-audio cleanup.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://www.descript.com/" target="_blank" rel="noopener noreferrer">Open Descript ↗</a>
+        </div>
+      </div>
+
+      <div class="section-kicker">Image Generation</div>
+      <div class="grid-2 mb16">
+        <div class="card gold-card">
+          <div class="card-title gold">MIDJOURNEY</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">High-style concept art, thumbnails, and moodboard visuals.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">midjourney.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Paid plans start around $10/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">No</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Stable Diffusion (AUTOMATIC1111 / ComfyUI).</td></tr>
+          </table>
+          <a class="tool-cta" href="https://www.midjourney.com/" target="_blank" rel="noopener noreferrer">Open Midjourney ↗</a>
+        </div>
+        <div class="card gold-card">
+          <div class="card-title gold">ADOBE FIREFLY</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Generative fills, text effects, and brand-safe commercial assets.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">firefly.adobe.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Limited free credits; paid plans start around $4.99/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes (credit-limited)</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Krita + Stable Diffusion plugin workflow.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://firefly.adobe.com/" target="_blank" rel="noopener noreferrer">Open Firefly ↗</a>
+        </div>
+      </div>
+
+      <div class="section-kicker">Scriptwriting</div>
+      <div class="grid-2 mb16">
+        <div class="card accent-card">
+          <div class="card-title">CHATGPT</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Hook ideation, scripting drafts, and CTA variants by platform.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">chatgpt.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free tier available; Plus starts around $20/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Local LLM via Ollama + Open WebUI.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Open ChatGPT ↗</a>
+        </div>
+        <div class="card accent-card">
+          <div class="card-title">CLAUDE</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Long-form outline-to-script pipelines and tone-preserving rewrites.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">claude.ai</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free tier available; Pro starts around $20/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Local Mistral/Llama models with LibreChat.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Open Claude ↗</a>
+        </div>
+      </div>
+
+      <div class="section-kicker">Automation</div>
+      <div class="grid-2 mb16">
+        <div class="card cyan-card">
+          <div class="card-title cyan">ZAPIER</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">No-code workflow automation across creator apps and cloud tools.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">zapier.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free tier; paid plans start around $19.99/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">n8n (self-hosted) for custom automation flows.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://zapier.com/" target="_blank" rel="noopener noreferrer">Open Zapier ↗</a>
+        </div>
+        <div class="card cyan-card">
+          <div class="card-title cyan">MAKE</div>
+          <table class="tool-meta-table">
+            <tr><td class="tool-meta-label">Primary Use Case</td><td class="tool-meta-value">Visual scenario builder for multi-step media processing and routing.</td></tr>
+            <tr><td class="tool-meta-label">Official Link</td><td class="tool-meta-value">make.com</td></tr>
+            <tr><td class="tool-meta-label">Starting Cost</td><td class="tool-meta-value">Free tier; Core plan starts around $9/month.</td></tr>
+            <tr><td class="tool-meta-label">Free Tier</td><td class="tool-meta-value">Yes</td></tr>
+            <tr><td class="tool-meta-label">FOSS Alternative</td><td class="tool-meta-value">Node-RED for event and API automation.</td></tr>
+          </table>
+          <a class="tool-cta" href="https://www.make.com/" target="_blank" rel="noopener noreferrer">Open Make ↗</a>
         </div>
       </div>
     </div>
