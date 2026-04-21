@@ -37,6 +37,24 @@
     overflow: hidden;
   }
 
+  .bg-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 24%, rgba(232,57,14,0.24), transparent 46%),
+      radial-gradient(circle at 78% 72%, rgba(0,212,255,0.2), transparent 42%),
+      linear-gradient(135deg, #070a0f 0%, #0b1119 48%, #090d13 100%);
+  }
+  #bg-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0.9;
+  }
+
   /* LAYOUT */
   .app {
     display: grid;
@@ -44,6 +62,8 @@
     grid-template-rows: 56px 1fr;
     height: 100vh;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
   }
 
   /* TOPBAR */
@@ -685,6 +705,9 @@
 </style>
 </head>
 <body>
+<div class="bg-layer" aria-hidden="true">
+  <canvas id="bg-canvas"></canvas>
+</div>
 <div class="app">
 
   <!-- TOPBAR -->
@@ -1697,6 +1720,204 @@ const STORAGE_KEYS = {
   searchAllTabs: 'rysar_search_all_tabs'
 };
 
+// ============================================================
+// BACKGROUND PARTICLE FIELD
+// ============================================================
+const bgMotion = (() => {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return null;
+
+  const ctx = canvas.getContext('2d', { alpha: true });
+  if (!ctx) return null;
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isLowEnd = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+  const useFallback = reducedMotion || isLowEnd;
+
+  if (useFallback) {
+    canvas.style.display = 'none';
+    return {
+      burstAt() {},
+      pulse() {},
+      start() {},
+      stop() {}
+    };
+  }
+
+  const state = {
+    width: 1,
+    height: 1,
+    dpr: Math.min(window.devicePixelRatio || 1, 1.75),
+    rafId: null,
+    lastTs: 0,
+    budgetMs: 15,
+    skipFrames: 0,
+    hidden: document.visibilityState !== 'visible',
+    intensity: 1,
+    pulse: { t: 0, duration: 1100, from: 0, to: 0 },
+    paletteShift: 0,
+    particles: [],
+    bursts: []
+  };
+
+  const colors = ['var(--accent)', 'var(--cyan)', 'var(--gold)'].map((name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#ffffff');
+  const particleCount = Math.max(48, Math.min(130, Math.floor(window.innerWidth / 15)));
+
+  function resize() {
+    state.width = window.innerWidth;
+    state.height = window.innerHeight;
+    state.dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+    canvas.width = Math.floor(state.width * state.dpr);
+    canvas.height = Math.floor(state.height * state.dpr);
+    canvas.style.width = `${state.width}px`;
+    canvas.style.height = `${state.height}px`;
+    ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+  }
+
+  function newParticle(index) {
+    return {
+      x: Math.random() * state.width,
+      y: Math.random() * state.height,
+      vx: 0,
+      vy: 0,
+      baseSpeed: 0.22 + Math.random() * 0.45,
+      size: 0.8 + Math.random() * 1.8,
+      colorIndex: index % colors.length,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
+  function initParticles() {
+    state.particles = Array.from({ length: particleCount }, (_, i) => newParticle(i));
+  }
+
+  function flowAngle(x, y, t) {
+    return Math.sin((x * 0.0018) + t * 0.00045) * 1.4 + Math.cos((y * 0.0015) - t * 0.00035) * 1.2;
+  }
+
+  function burstAt(x, y, amp = 1) {
+    state.bursts.push({
+      x,
+      y,
+      radius: 8,
+      maxRadius: 120 + amp * 90,
+      strength: Math.min(2.2, 0.9 + amp),
+      life: 1
+    });
+  }
+
+  function pulse(direction = 1) {
+    state.pulse = {
+      t: 0,
+      duration: 900,
+      from: state.paletteShift,
+      to: state.paletteShift + (direction >= 0 ? 1 : -1)
+    };
+  }
+
+  function updateBursts(dt) {
+    state.bursts = state.bursts.filter((burst) => {
+      burst.radius += dt * 0.17 * burst.strength;
+      burst.life -= dt * 0.0012;
+      return burst.life > 0 && burst.radius < burst.maxRadius;
+    });
+  }
+
+  function render(ts) {
+    const dt = Math.min(34, ts - (state.lastTs || ts));
+    state.lastTs = ts;
+
+    if (state.hidden) {
+      state.rafId = requestAnimationFrame(render);
+      return;
+    }
+
+    if (state.skipFrames > 0) {
+      state.skipFrames -= 1;
+      state.rafId = requestAnimationFrame(render);
+      return;
+    }
+
+    const tickStart = performance.now();
+    ctx.clearRect(0, 0, state.width, state.height);
+    updateBursts(dt);
+
+    if (state.pulse.t < state.pulse.duration) {
+      state.pulse.t += dt;
+      const k = Math.min(1, state.pulse.t / state.pulse.duration);
+      state.paletteShift = state.pulse.from + (state.pulse.to - state.pulse.from) * (1 - Math.pow(1 - k, 3));
+    }
+
+    for (let i = 0; i < state.particles.length; i += 1) {
+      const p = state.particles[i];
+      const angle = flowAngle(p.x, p.y, ts + p.phase * 1000);
+      const speed = p.baseSpeed * state.intensity;
+      p.vx = Math.cos(angle) * speed;
+      p.vy = Math.sin(angle) * speed;
+
+      for (let j = 0; j < state.bursts.length; j += 1) {
+        const b = state.bursts[j];
+        const dx = p.x - b.x;
+        const dy = p.y - b.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const falloff = Math.max(0, 1 - dist / b.radius);
+        if (falloff > 0) {
+          p.vx += (dx / dist) * falloff * b.strength * 0.45;
+          p.vy += (dy / dist) * falloff * b.strength * 0.45;
+        }
+      }
+
+      p.x += p.vx * dt * 0.1;
+      p.y += p.vy * dt * 0.1;
+
+      if (p.x < -20) p.x = state.width + 20;
+      if (p.x > state.width + 20) p.x = -20;
+      if (p.y < -20) p.y = state.height + 20;
+      if (p.y > state.height + 20) p.y = -20;
+
+      const colorOffset = Math.abs(Math.floor(state.paletteShift)) % colors.length;
+      const color = colors[(p.colorIndex + colorOffset) % colors.length];
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.24 + Math.abs(Math.sin((ts * 0.001) + p.phase)) * 0.3;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+
+    const frameCost = performance.now() - tickStart;
+    if (frameCost > state.budgetMs) {
+      state.skipFrames = Math.min(2, state.skipFrames + 1);
+    } else {
+      state.skipFrames = Math.max(0, state.skipFrames - 1);
+    }
+
+    state.rafId = requestAnimationFrame(render);
+  }
+
+  function start() {
+    resize();
+    initParticles();
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+    state.lastTs = performance.now();
+    state.rafId = requestAnimationFrame(render);
+  }
+
+  function stop() {
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+    state.rafId = null;
+  }
+
+  window.addEventListener('resize', resize, { passive: true });
+  document.addEventListener('visibilitychange', () => {
+    state.hidden = document.visibilityState !== 'visible';
+    state.intensity = state.hidden ? 0.35 : 1;
+  });
+
+  return { burstAt, pulse, start, stop };
+})();
+
 function slugify(value) {
   return (value || '')
     .toLowerCase()
@@ -1762,6 +1983,7 @@ function switchTab(id, el) {
   const direction = prevIndex !== -1 && nextIndex !== -1
     ? (nextIndex >= prevIndex ? 1 : -1)
     : 1;
+  if (bgMotion) bgMotion.pulse(direction);
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   if (activeNav) activeNav.classList.add('active');
@@ -2419,6 +2641,15 @@ function toggleItem(id) {
 // ============================================================
 renderChecklist();
 restoreUiState();
+if (bgMotion) bgMotion.start();
+
+document.querySelectorAll('.nav-item').forEach((item) => {
+  item.addEventListener('mouseenter', () => {
+    if (!bgMotion) return;
+    const rect = item.getBoundingClientRect();
+    bgMotion.burstAt(rect.left + rect.width * 0.5, rect.top + rect.height * 0.5, 1.2);
+  });
+});
 
 document.getElementById('topbar-search-input')?.addEventListener('input', applySearchFilter);
 document.getElementById('search-all-tabs-toggle')?.addEventListener('change', applySearchFilter);
