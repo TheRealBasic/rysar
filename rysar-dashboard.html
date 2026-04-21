@@ -1566,13 +1566,76 @@ Cheers,
 
 <script>
 // ============================================================
+// UI STATE PERSISTENCE
+// ============================================================
+const STORAGE_KEYS = {
+  activeTab: 'rysar_active_tab',
+  openExpandables: 'rysar_open_expandables',
+  openDays: 'rysar_open_days'
+};
+
+function slugify(value) {
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function ensureStableDataIds() {
+  document.querySelectorAll('.nav-item[data-tab]').forEach((item) => {
+    if (!item.dataset.id) item.dataset.id = `tab-${item.dataset.tab}`;
+  });
+
+  const expandableCounts = {};
+  document.querySelectorAll('.expandable').forEach((item) => {
+    if (item.dataset.id) return;
+    const headerText = item.querySelector('.expandable-header')?.textContent || '';
+    const baseKey = slugify(headerText) || 'expandable';
+    expandableCounts[baseKey] = (expandableCounts[baseKey] || 0) + 1;
+    const suffix = expandableCounts[baseKey] > 1 ? `-${expandableCounts[baseKey]}` : '';
+    item.dataset.id = `expandable-${baseKey}${suffix}`;
+  });
+
+  const dayCounts = {};
+  document.querySelectorAll('.day-card').forEach((item) => {
+    if (item.dataset.id) return;
+    const dayText = item.querySelector('.day-title')?.textContent || '';
+    const baseKey = slugify(dayText) || 'day';
+    dayCounts[baseKey] = (dayCounts[baseKey] || 0) + 1;
+    const suffix = dayCounts[baseKey] > 1 ? `-${dayCounts[baseKey]}` : '';
+    item.dataset.id = `day-${baseKey}${suffix}`;
+  });
+}
+
+function saveOpenState(selector, key) {
+  const openIds = [...document.querySelectorAll(`${selector}.open[data-id]`)].map((el) => el.dataset.id);
+  localStorage.setItem(key, JSON.stringify(openIds));
+}
+
+function loadOpenState(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+// ============================================================
 // TAB SWITCHING
 // ============================================================
 function switchTab(id, el) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  el.classList.add('active');
+
+  const tab = document.getElementById('tab-' + id);
+  if (!tab) return;
+  tab.classList.add('active');
+
+  const activeNav = el || document.querySelector(`.nav-item[data-tab="${id}"]`);
+  if (activeNav) activeNav.classList.add('active');
+
+  localStorage.setItem(STORAGE_KEYS.activeTab, id);
 }
 
 // ============================================================
@@ -1580,6 +1643,7 @@ function switchTab(id, el) {
 // ============================================================
 function toggleExpand(el) {
   el.classList.toggle('open');
+  saveOpenState('.expandable', STORAGE_KEYS.openExpandables);
 }
 
 // ============================================================
@@ -1587,6 +1651,26 @@ function toggleExpand(el) {
 // ============================================================
 function toggleDay(el) {
   el.classList.toggle('open');
+  saveOpenState('.day-card', STORAGE_KEYS.openDays);
+}
+
+function restoreUiState() {
+  ensureStableDataIds();
+
+  const activeTab = localStorage.getItem(STORAGE_KEYS.activeTab);
+  if (activeTab) switchTab(activeTab);
+
+  const openExpandables = loadOpenState(STORAGE_KEYS.openExpandables);
+  openExpandables.forEach((id) => {
+    const item = document.querySelector(`.expandable[data-id="${id}"]`);
+    if (item) item.classList.add('open');
+  });
+
+  const openDays = loadOpenState(STORAGE_KEYS.openDays);
+  openDays.forEach((id) => {
+    const item = document.querySelector(`.day-card[data-id="${id}"]`);
+    if (item) item.classList.add('open');
+  });
 }
 
 // ============================================================
@@ -1760,6 +1844,7 @@ function toggleItem(id) {
 // INIT
 // ============================================================
 renderChecklist();
+restoreUiState();
 </script>
 </body>
 </html>
