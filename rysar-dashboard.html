@@ -389,20 +389,23 @@
   .expandable-header:hover { border-color: var(--border2); background: var(--surface2); }
   .expandable-header .arrow {
     margin-left: auto;
-    transition: transform 0.25s;
     color: var(--text3);
     font-size: 12px;
+    transform: rotate(0deg);
   }
-  .expandable.open .arrow { transform: rotate(90deg); }
   .expandable-body {
-    display: none;
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
     padding: 16px;
     border: 1px solid var(--border);
     border-top: none;
     border-radius: 0 0 6px 6px;
     background: rgba(0,0,0,0.2);
+    will-change: height, opacity;
   }
-  .expandable.open .expandable-body { display: block; animation: fadeIn 0.2s; }
+  .expandable.open .expandable-body { pointer-events: auto; }
 
   /* PROGRESS */
   .progress-bar-outer {
@@ -594,10 +597,16 @@
     padding: 3px 8px;
     border-radius: 12px;
   }
-  .day-arrow { color: var(--text3); transition: transform 0.25s; font-size: 12px; }
-  .day-card.open .day-arrow { transform: rotate(90deg); }
-  .day-body { display: none; padding: 0 18px 18px; }
-  .day-card.open .day-body { display: block; animation: fadeIn 0.2s; }
+  .day-arrow { color: var(--text3); font-size: 12px; transform: rotate(0deg); }
+  .day-body {
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    padding: 0 18px 18px;
+    will-change: height, opacity;
+  }
+  .day-card.open .day-body { pointer-events: auto; }
 
   .shot-list {
     list-style: none;
@@ -1837,10 +1846,120 @@ function switchTab(id, el) {
 }
 
 // ============================================================
-// EXPANDABLE CARDS
+// COLLAPSIBLE PANELS (EXPANDABLE + DAY CARDS)
 // ============================================================
+const PANEL_ANIMATION = {
+  duration: 0.26,
+  ease: 'power2.inOut',
+  arrowEase: 'power2.out',
+  debounceMs: 80
+};
+
+const panelAnimationState = new WeakMap();
+
+function getPanelState(container) {
+  if (!panelAnimationState.has(container)) {
+    panelAnimationState.set(container, { timeline: null, timerId: null, rafId: null });
+  }
+  return panelAnimationState.get(container);
+}
+
+function clearPanelAnimation(state) {
+  if (state.timeline) state.timeline.kill();
+  if (state.timerId) clearTimeout(state.timerId);
+  if (state.rafId) cancelAnimationFrame(state.rafId);
+  state.timeline = null;
+  state.timerId = null;
+  state.rafId = null;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function applyPanelState(container, { bodySelector, arrowSelector, isOpen, instant = false }) {
+  const body = container.querySelector(bodySelector);
+  const arrow = container.querySelector(arrowSelector);
+  if (!body) return;
+
+  const state = getPanelState(container);
+  clearPanelAnimation(state);
+
+  const canAnimate = !instant && !prefersReducedMotion() && typeof window.gsap !== 'undefined';
+
+  const finalize = () => {
+    container.classList.toggle('open', isOpen);
+    body.style.overflow = 'hidden';
+    body.style.height = isOpen ? 'auto' : '0px';
+    body.style.opacity = isOpen ? '1' : '0';
+    body.style.pointerEvents = isOpen ? 'auto' : 'none';
+    if (arrow) arrow.style.transform = `rotate(${isOpen ? 90 : 0}deg)`;
+  };
+
+  if (!canAnimate) {
+    finalize();
+    return;
+  }
+
+  const startHeight = body.getBoundingClientRect().height;
+
+  container.classList.toggle('open', isOpen);
+  body.style.pointerEvents = isOpen ? 'auto' : 'none';
+  body.style.overflow = 'hidden';
+
+  if (isOpen) {
+    body.style.height = 'auto';
+  }
+
+  const targetHeight = isOpen ? body.scrollHeight : 0;
+  body.style.height = `${startHeight}px`;
+
+  state.rafId = requestAnimationFrame(() => {
+    const timeline = gsap.timeline({
+      defaults: { overwrite: 'auto' },
+      onComplete: () => {
+        state.timeline = null;
+        if (isOpen) body.style.height = 'auto';
+      }
+    });
+
+    timeline.to(body, {
+      duration: PANEL_ANIMATION.duration,
+      height: targetHeight,
+      opacity: isOpen ? 1 : 0,
+      ease: PANEL_ANIMATION.ease
+    }, 0);
+
+    if (arrow) {
+      timeline.to(arrow, {
+        duration: PANEL_ANIMATION.duration,
+        rotate: isOpen ? 90 : 0,
+        ease: PANEL_ANIMATION.arrowEase
+      }, 0);
+    }
+
+    state.timeline = timeline;
+    state.rafId = null;
+  });
+}
+
+function queuePanelToggle(container, options) {
+  const state = getPanelState(container);
+  clearPanelAnimation(state);
+  state.timerId = setTimeout(() => {
+    state.timerId = null;
+    applyPanelState(container, options);
+  }, PANEL_ANIMATION.debounceMs);
+}
+
 function toggleExpand(el) {
-  el.classList.toggle('open');
+  const isOpen = !el.classList.contains('open');
+  el.classList.toggle('open', isOpen);
+  queuePanelToggle(el, {
+    bodySelector: '.expandable-body',
+    arrowSelector: '.arrow',
+    isOpen
+  });
   saveOpenState('.expandable', STORAGE_KEYS.openExpandables);
 }
 
@@ -1848,7 +1967,13 @@ function toggleExpand(el) {
 // DAY CARDS
 // ============================================================
 function toggleDay(el) {
-  el.classList.toggle('open');
+  const isOpen = !el.classList.contains('open');
+  el.classList.toggle('open', isOpen);
+  queuePanelToggle(el, {
+    bodySelector: '.day-body',
+    arrowSelector: '.day-arrow',
+    isOpen
+  });
   saveOpenState('.day-card', STORAGE_KEYS.openDays);
 }
 
@@ -1858,16 +1983,24 @@ function restoreUiState() {
   const activeTab = localStorage.getItem(STORAGE_KEYS.activeTab);
   if (activeTab) switchTab(activeTab);
 
-  const openExpandables = loadOpenState(STORAGE_KEYS.openExpandables);
-  openExpandables.forEach((id) => {
-    const item = document.querySelector(`.expandable[data-id="${id}"]`);
-    if (item) item.classList.add('open');
+  const openExpandables = new Set(loadOpenState(STORAGE_KEYS.openExpandables));
+  document.querySelectorAll('.expandable[data-id]').forEach((item) => {
+    applyPanelState(item, {
+      bodySelector: '.expandable-body',
+      arrowSelector: '.arrow',
+      isOpen: openExpandables.has(item.dataset.id),
+      instant: true
+    });
   });
 
-  const openDays = loadOpenState(STORAGE_KEYS.openDays);
-  openDays.forEach((id) => {
-    const item = document.querySelector(`.day-card[data-id="${id}"]`);
-    if (item) item.classList.add('open');
+  const openDays = new Set(loadOpenState(STORAGE_KEYS.openDays));
+  document.querySelectorAll('.day-card[data-id]').forEach((item) => {
+    applyPanelState(item, {
+      bodySelector: '.day-body',
+      arrowSelector: '.day-arrow',
+      isOpen: openDays.has(item.dataset.id),
+      instant: true
+    });
   });
 
   const savedQuery = localStorage.getItem(STORAGE_KEYS.searchQuery) || '';
