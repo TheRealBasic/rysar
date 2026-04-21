@@ -123,7 +123,18 @@
       return;
     }
 
-    el.winsList.innerHTML = state.wins.slice().reverse().map((win) => `<div class="hook-box"><span class="hook-label">WIN</span>${escapeHtml(win)}</div>`).join('');
+    el.winsList.innerHTML = state.wins
+      .map((win, index) => `
+        <div class="hook-box">
+          <span class="hook-label">WIN</span>${escapeHtml(win)}
+          <div class="inline-actions" style="margin-top:8px">
+            <button class="creator-btn secondary" data-win-action="edit" data-win-index="${index}" type="button">Edit</button>
+            <button class="creator-btn secondary" data-win-action="delete" data-win-index="${index}" type="button">Delete</button>
+          </div>
+        </div>
+      `)
+      .reverse()
+      .join('');
   }
 
   function renderAll() {
@@ -209,6 +220,32 @@
     el.winsInput.value = '';
     saveState(state);
     renderWins();
+  });
+
+  el.winsList.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-win-action]');
+    if (!button) return;
+
+    const action = button.getAttribute('data-win-action');
+    const index = Number(button.getAttribute('data-win-index'));
+    if (Number.isNaN(index) || !state.wins[index]) return;
+
+    if (action === 'delete') {
+      state.wins.splice(index, 1);
+      saveState(state);
+      renderWins();
+      return;
+    }
+
+    if (action === 'edit') {
+      const updated = prompt('Edit win', state.wins[index]);
+      if (updated === null) return;
+      const next = updated.trim();
+      if (!next) return;
+      state.wins[index] = next;
+      saveState(state);
+      renderWins();
+    }
   });
 
   renderAll();
