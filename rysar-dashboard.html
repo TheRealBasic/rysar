@@ -87,6 +87,62 @@
     align-items: center;
     gap: 20px;
   }
+  .topbar-search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 6px 8px;
+    min-width: 320px;
+  }
+  .search-input {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    width: 100%;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    outline: none;
+  }
+  .search-input::placeholder { color: var(--text3); }
+  .clear-search-btn {
+    background: transparent;
+    color: var(--text3);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 3px 6px;
+    cursor: pointer;
+  }
+  .clear-search-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .search-mode {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text2);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+  }
+  .search-hit {
+    background: rgba(240,165,0,0.25);
+    color: #fff1ca;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
   .status-pill {
     background: rgba(0,230,118,0.1);
     border: 1px solid rgba(0,230,118,0.3);
@@ -582,6 +638,16 @@
   <header class="topbar">
     <div class="logo">RY<span>S</span>AR</div>
     <div class="tagline">// Creator Operating System v1.0</div>
+    <div class="topbar-search">
+      <div class="search-input-wrap">
+        <input id="topbar-search-input" class="search-input" type="text" placeholder="Search visible tab content..." />
+        <button id="clear-search-btn" class="clear-search-btn" type="button">Clear</button>
+      </div>
+      <label class="search-mode">
+        <input id="search-all-tabs-toggle" type="checkbox" />
+        Search all tabs
+      </label>
+    </div>
     <div class="topbar-right">
       <div class="status-pill">● ACTIVE TRIP</div>
       <div class="trip-counter">SWEDEN TRIP — <span>11 DAYS</span></div>
@@ -1571,7 +1637,9 @@ Cheers,
 const STORAGE_KEYS = {
   activeTab: 'rysar_active_tab',
   openExpandables: 'rysar_open_expandables',
-  openDays: 'rysar_open_days'
+  openDays: 'rysar_open_days',
+  searchQuery: 'rysar_search_query',
+  searchAllTabs: 'rysar_search_all_tabs'
 };
 
 function slugify(value) {
@@ -1636,6 +1704,7 @@ function switchTab(id, el) {
   if (activeNav) activeNav.classList.add('active');
 
   localStorage.setItem(STORAGE_KEYS.activeTab, id);
+  applySearchFilter();
 }
 
 // ============================================================
@@ -1670,6 +1739,96 @@ function restoreUiState() {
   openDays.forEach((id) => {
     const item = document.querySelector(`.day-card[data-id="${id}"]`);
     if (item) item.classList.add('open');
+  });
+
+  const savedQuery = localStorage.getItem(STORAGE_KEYS.searchQuery) || '';
+  const searchInput = document.getElementById('topbar-search-input');
+  if (searchInput) searchInput.value = savedQuery;
+
+  const searchAllTabs = localStorage.getItem(STORAGE_KEYS.searchAllTabs) === 'true';
+  const allTabsToggle = document.getElementById('search-all-tabs-toggle');
+  if (allTabsToggle) allTabsToggle.checked = searchAllTabs;
+
+  applySearchFilter();
+}
+
+// ============================================================
+// SEARCH + TAB-SCOPED FILTERING
+// ============================================================
+const SEARCH_BLOCK_SELECTOR = '.card, .day-card, .checklist-item, .hook-box';
+
+function getSearchBlocks() {
+  const allTabs = document.getElementById('search-all-tabs-toggle')?.checked;
+  const tabs = allTabs
+    ? [...document.querySelectorAll('.tab-content')]
+    : [...document.querySelectorAll('.tab-content.active')];
+  return tabs.flatMap((tab) => [...tab.querySelectorAll(SEARCH_BLOCK_SELECTOR)]);
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function clearHighlight(block) {
+  if (block.dataset.searchOriginalHtml !== undefined) {
+    block.innerHTML = block.dataset.searchOriginalHtml;
+  }
+}
+
+function highlightInBlock(block, query) {
+  if (!query) return;
+
+  if (block.dataset.searchOriginalHtml === undefined) {
+    block.dataset.searchOriginalHtml = block.innerHTML;
+  }
+  block.innerHTML = block.dataset.searchOriginalHtml;
+
+  const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  const textNodes = [];
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (!node.nodeValue || !node.nodeValue.trim()) continue;
+    if (node.parentElement && ['SCRIPT', 'STYLE', 'MARK'].includes(node.parentElement.tagName)) continue;
+    textNodes.push(node);
+  }
+
+  textNodes.forEach((node) => {
+    if (!regex.test(node.nodeValue)) return;
+    regex.lastIndex = 0;
+    const frag = document.createElement('span');
+    frag.innerHTML = node.nodeValue.replace(regex, '<mark class="search-hit">$1</mark>');
+    const replacement = document.createDocumentFragment();
+    while (frag.firstChild) replacement.appendChild(frag.firstChild);
+    node.parentNode.replaceChild(replacement, node);
+  });
+}
+
+function applySearchFilter() {
+  const query = (document.getElementById('topbar-search-input')?.value || '').trim().toLowerCase();
+  localStorage.setItem(STORAGE_KEYS.searchQuery, query);
+  localStorage.setItem(STORAGE_KEYS.searchAllTabs, String(!!document.getElementById('search-all-tabs-toggle')?.checked));
+
+  const scopedTabs = document.getElementById('search-all-tabs-toggle')?.checked
+    ? [...document.querySelectorAll('.tab-content')]
+    : [...document.querySelectorAll('.tab-content.active')];
+
+  scopedTabs.forEach((tab) => {
+    tab.querySelectorAll(SEARCH_BLOCK_SELECTOR).forEach((block) => {
+      clearHighlight(block);
+      block.style.display = '';
+    });
+  });
+
+  if (!query) return;
+
+  const blocks = getSearchBlocks();
+  blocks.forEach((block) => {
+    const text = (block.textContent || '').toLowerCase();
+    const isMatch = text.includes(query);
+    block.style.display = isMatch ? '' : 'none';
+    if (isMatch) highlightInBlock(block, query);
   });
 }
 
@@ -1830,6 +1989,8 @@ function renderChecklist() {
 
   // Update badge
   document.getElementById('checklist-badge').textContent = pct + '%';
+
+  applySearchFilter();
 }
 
 function toggleItem(id) {
@@ -1845,6 +2006,14 @@ function toggleItem(id) {
 // ============================================================
 renderChecklist();
 restoreUiState();
+
+document.getElementById('topbar-search-input')?.addEventListener('input', applySearchFilter);
+document.getElementById('search-all-tabs-toggle')?.addEventListener('change', applySearchFilter);
+document.getElementById('clear-search-btn')?.addEventListener('click', () => {
+  const searchInput = document.getElementById('topbar-search-input');
+  if (searchInput) searchInput.value = '';
+  applySearchFilter();
+});
 </script>
 </body>
 </html>
